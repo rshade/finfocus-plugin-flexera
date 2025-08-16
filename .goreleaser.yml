@@ -1,0 +1,147 @@
+before:
+  hooks:
+    - go mod tidy
+    - go mod download
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos=windows
+        goarch=arm64
+    ldflags:
+      - -s -w
+      - -X github.com/rshade/pulumicost-plugin-kubecost/pkg/version.Version={{.Version}}
+      - -X github.com/rshade/pulumicost-plugin-kubecost/pkg/version.BuildDate={{.Date}}
+      - -X github.com/rshade/pulumicost-plugin-kubecost/pkg/version.GitCommit={{.Commit}}
+      - -X github.com/rshade/pulumicost-plugin-kubecost/pkg/version.GitBranch={{.Branch}}
+      - -X github.com/rshade/pulumicost-plugin-kubecost/pkg/version.GitState={{if .Dirty}}dirty{{else}}clean{{end}}
+    binary: pulumicost-kubecost
+    main: ./cmd/pulumicost-kubecost
+
+archives:
+  - format: tar.gz
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - README.md
+      - LICENSE
+      - VERSION.md
+      - config.example.yaml
+      - plugin.manifest.json
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^ci:'
+      - Merge pull request
+      - Merge branch
+
+release:
+  draft: false
+  prerelease: auto
+
+dist: dist
+
+dockers:
+  - image_templates:
+      - "ghcr.io/rshade/pulumicost-plugin-kubecost:{{ .Version }}"
+      - "ghcr.io/rshade/pulumicost-plugin-kubecost:latest"
+    dockerfile: Dockerfile
+    use: buildx
+    build_flag_templates:
+      - "--platform=linux/amd64"
+      - "--platform=linux/arm64"
+    extra_files:
+      - config.example.yaml
+      - plugin.manifest.json
+
+brews:
+  - name: pulumicost-kubecost
+    homepage: "https://github.com/rshade/pulumicost-plugin-kubecost"
+    description: "PulumiCost plugin for Kubecost integration"
+    repository:
+      owner: rshade
+      name: homebrew-tap
+    commit_author:
+      name: goreleaserbot
+      email: goreleaser@carlosbecker.com
+    folder: Formula
+    homepage_tap: true
+    test: |
+      system "#{bin}/pulumicost-kubecost", "-version"
+    install: |
+      bin.install "pulumicost-kubecost"
+      prefix.install "config.example.yaml"
+      prefix.install "plugin.manifest.json"
+
+nfpms:
+  - maintainer: "rshade <rshade@example.com>"
+    description: "PulumiCost plugin for Kubecost integration"
+    homepage: "https://github.com/rshade/pulumicost-plugin-kubecost"
+    license: "MIT"
+    formats:
+      - deb
+      - rpm
+    files:
+      config.example.yaml: /etc/pulumicost/kubecost/config.example.yaml
+      plugin.manifest.json: /etc/pulumicost/kubecost/plugin.manifest.json
+    scripts:
+      postinstall: scripts/postinstall.sh
+      postremove: scripts/postremove.sh
+
+announce:
+  twitter:
+    enabled: true
+    message_template: "🚀 {{ .ProjectName }} {{ .Tag }} is out! {{ .ReleaseURL }}"
+  mastodon:
+    enabled: false
+  linkedin:
+    enabled: false
+  reddit:
+    enabled: false
+  slack:
+    enabled: false
+  discord:
+    enabled: false
+  teams:
+    enabled: false
+  smtp:
+    enabled: false
+  telegram:
+    enabled: false
+  mattermost:
+    enabled: false
+  rocketchat:
+    enabled: false
+  s3:
+    enabled: false
+  artifactory:
+    enabled: false
+  blobs:
+    enabled: false
+  upload:
+    enabled: false

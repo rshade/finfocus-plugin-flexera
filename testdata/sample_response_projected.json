@@ -1,0 +1,11 @@
+{
+  "unitPrice": 129.05,
+  "currency": "USD",
+  "costPerMonth": 3871.50,
+  "billingDetail": "kubecost-avg-daily",
+  "metadata": {
+    "source": "kubecost",
+    "calculationMethod": "30-day-average",
+    "lastUpdated": "2025-07-31T23:59:59Z"
+  }
+}

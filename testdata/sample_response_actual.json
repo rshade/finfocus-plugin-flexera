@@ -1,0 +1,25 @@
+{
+  "results": [
+    {
+      "timestamp": "2025-07-01T00:00:00Z",
+      "cost": 125.50,
+      "usageAmount": 240.5,
+      "usageUnit": "CPU-hours",
+      "source": "kubecost"
+    },
+    {
+      "timestamp": "2025-07-02T00:00:00Z",
+      "cost": 132.75,
+      "usageAmount": 252.3,
+      "usageUnit": "CPU-hours",
+      "source": "kubecost"
+    },
+    {
+      "timestamp": "2025-07-03T00:00:00Z",
+      "cost": 128.90,
+      "usageAmount": 245.8,
+      "usageUnit": "CPU-hours",
+      "source": "kubecost"
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "name": "flexera",
+  "version": "1.0.0",
+  "type": "costsource",
+  "description": "Flexera Optima plugin for Pulumicost - provides actual and projected cost for cloud resources",
+  "executable": "pulumicost-flexera",
+  "protocol": "grpc",
+  "supported_resources": [
+    "aws-ec2",
+    "aws-s3",
+    "aws-rds",
+    "azure-vm",
+    "azure-storage",
+    "gcp-compute",
+    "gcp-storage",
+    "cloud-account",
+    "cloud-service",
+    "cloud-region",
+    "billing-center",
+    "resource-group"
+  ],
+  "configuration": {
+    "region": {
+      "type": "string",
+      "description": "Flexera region (nam, eu, apac)",
+      "required": false,
+      "default": "nam",
+      "env": "FLEXERA_REGION"
+    },
+    "orgId": {
+      "type": "string",
+      "description": "Flexera organization ID",
+      "required": true,
+      "env": "FLEXERA_ORG_ID"
+    },
+    "apiToken": {
+      "type": "string",
+      "description": "JWT token from Flexera Cloud Management API",
+      "required": true,
+      "env": "FLEXERA_API_TOKEN"
+    },
+    "baseUrl": {
+      "type": "string",
+      "description": "Flexera Optima API base URL (auto-configured from region if not provided)",
+      "required": false,
+      "env": "FLEXERA_BASE_URL"
+    },
+    "defaultWindow": {
+      "type": "string",
+      "description": "Default time window for queries (e.g., 30d)",
+      "required": false,
+      "default": "30d",
+      "env": "FLEXERA_DEFAULT_WINDOW"
+    },
+    "timeout": {
+      "type": "string",
+      "description": "Request timeout duration (e.g., 30s)",
+      "required": false,
+      "default": "30s",
+      "env": "FLEXERA_TIMEOUT"
+    },
+    "tlsSkipVerify": {
+      "type": "boolean",
+      "description": "Skip TLS certificate verification",
+      "required": false,
+      "default": false,
+      "env": "FLEXERA_TLS_SKIP_VERIFY"
+    }
+  }
+}

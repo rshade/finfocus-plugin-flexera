@@ -1,0 +1,24 @@
+# Flexera Optima Configuration
+# You can also set these via environment variables:
+# FLEXERA_REGION, FLEXERA_ORG_ID, FLEXERA_API_TOKEN, etc.
+
+# Region can be: nam, eu, apac (auto-configures baseUrl)
+region: nam
+
+# Your Flexera organization ID
+orgId: "12345"
+
+# JWT token from Flexera Cloud Management API
+apiToken: ""
+
+# Optional: Override auto-configured URL
+# baseUrl: https://api.optima.flexeraeng.com/bill-analysis
+
+# Default query window for cost data
+defaultWindow: 30d
+
+# HTTP timeout for API calls
+timeout: 30s
+
+# Skip TLS verification (for development only)
+tlsSkipVerify: false

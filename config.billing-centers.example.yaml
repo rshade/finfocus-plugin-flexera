@@ -1,0 +1,123 @@
+# Flexera Optima Configuration with Billing Center Mappings
+# This example shows how to map resource tags to billing centers
+
+# Basic Flexera configuration
+region: nam
+orgId: "12345"
+apiToken: "your-jwt-token-here"
+defaultWindow: 30d
+timeout: 30s
+tlsSkipVerify: false
+
+# Billing Center Mappings
+# Map resource tags to billing centers for automatic cost allocation
+billingCenterMappings:
+  
+  # Direct tag to billing center mappings
+  # Format: "tagKey:tagValue" -> "billing-center-id"
+  tagMappings:
+    # Environment-based allocation
+    "environment:production": "bc-prod-123"
+    "environment:staging": "bc-staging-456"
+    "environment:development": "bc-dev-789"
+    
+    # Team-based allocation
+    "team:platform": "bc-platform-abc"
+    "team:data": "bc-data-def"
+    "team:frontend": "bc-frontend-ghi"
+    "team:backend": "bc-backend-jkl"
+    
+    # Cost center allocation
+    "cost-center:1001": "bc-finance-mno"
+    "cost-center:2001": "bc-marketing-pqr"
+    "cost-center:3001": "bc-engineering-stu"
+    
+    # Project-based allocation
+    "project:alpha": "bc-project-alpha-vwx"
+    "project:beta": "bc-project-beta-yz1"
+    
+    # Department allocation (any value for this tag goes to department BC)
+    "department": "bc-department-general"
+  
+  # Hierarchical mappings with priority
+  # These are evaluated in order - first match wins
+  hierarchicalMappings:
+    
+    # Priority 1: Department level (highest priority)
+    - priority: 1
+      tagKey: "department"
+      description: "Department-level billing allocation"
+      mappings:
+        "engineering": "bc-engineering-main"
+        "finance": "bc-finance-main"
+        "marketing": "bc-marketing-main"
+        "operations": "bc-operations-main"
+        "hr": "bc-hr-main"
+        "legal": "bc-legal-main"
+    
+    # Priority 2: Business unit
+    - priority: 2
+      tagKey: "business-unit"
+      description: "Business unit allocation"
+      mappings:
+        "consumer": "bc-bu-consumer"
+        "enterprise": "bc-bu-enterprise"
+        "platform": "bc-bu-platform"
+    
+    # Priority 3: Project-specific
+    - priority: 3
+      tagKey: "project"
+      description: "Project-specific billing allocation"
+      mappings:
+        "migration-2025": "bc-migration-project"
+        "ml-platform": "bc-ml-platform"
+        "data-lake": "bc-data-lake"
+        "mobile-app": "bc-mobile-app"
+    
+    # Priority 4: Region-based
+    - priority: 4
+      tagKey: "region"
+      description: "Regional billing allocation"
+      mappings:
+        "us-east": "bc-region-useast"
+        "us-west": "bc-region-uswest"
+        "eu-central": "bc-region-eucentral"
+        "ap-south": "bc-region-apsouth"
+    
+    # Priority 5: Owner-based (lowest priority)
+    - priority: 5
+      tagKey: "owner"
+      description: "Owner-based billing allocation"
+      mappings:
+        "john.doe": "bc-johndoe-personal"
+        "jane.smith": "bc-janesmith-personal"
+        "bob.johnson": "bc-bobjohnson-personal"
+  
+  # Default billing center for resources without matching tags
+  defaultBillingCenter: "bc-unallocated-default"
+  
+  # Enable automatic discovery of billing centers by name
+  # When true, if a tag value doesn't have an explicit mapping,
+  # the system will try to find a billing center with that name
+  enableAutoDiscovery: true
+
+# Example tag combinations and their billing center resolution:
+# 
+# Resource with tags:
+#   environment: production
+#   team: platform
+#   department: engineering
+# -> Will be allocated to "bc-engineering-main" (department has priority 1)
+#
+# Resource with tags:
+#   environment: development
+#   project: ml-platform
+# -> Will be allocated to "bc-dev-789" (direct mapping for environment:development)
+#
+# Resource with tags:
+#   owner: john.doe
+#   region: us-east
+# -> Will be allocated to "bc-region-useast" (region has higher priority than owner)
+#
+# Resource with no matching tags:
+# -> Will be allocated to "bc-unallocated-default"

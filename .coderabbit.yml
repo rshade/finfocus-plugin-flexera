@@ -1,0 +1,353 @@
+# CodeRabbit Configuration
+# This file configures AI-powered code reviews for your repository
+
+# Global settings
+global:
+  # Enable/disable CodeRabbit for this repository
+  enabled: true
+  
+  # Default language for code reviews
+  language: "en"
+  
+  # Review scope - what files to include/exclude
+  review_scope:
+    include:
+      - "**/*.go"
+      - "**/*.yml"
+      - "**/*.yaml"
+      - "**/*.json"
+      - "**/*.md"
+      - "**/*.sh"
+      - "**/Dockerfile*"
+      - "**/Makefile"
+      - "**/go.mod"
+      - "**/go.sum"
+    exclude:
+      - "**/vendor/**"
+      - "**/node_modules/**"
+      - "**/.git/**"
+      - "**/dist/**"
+      - "**/bin/**"
+      - "**/*_test.go"
+      - "**/testdata/**"
+      - "**/.github/**"
+
+# Pull Request settings
+pull_request:
+  # Enable PR reviews
+  enabled: true
+  
+  # Review types to perform
+  review_types:
+    - "security"
+    - "performance"
+    - "best_practices"
+    - "code_quality"
+    - "documentation"
+    - "testing"
+  
+  # Review depth
+  depth: "thorough"
+  
+  # Auto-approve settings
+  auto_approve:
+    enabled: false
+    conditions:
+      - "all_checks_passed"
+      - "no_security_issues"
+      - "no_breaking_changes"
+  
+  # Comment settings
+  comments:
+    enabled: true
+    style: "detailed"
+    include_suggestions: true
+    include_examples: true
+    max_comments: 50
+  
+  # Summary settings
+  summary:
+    enabled: true
+    include_metrics: true
+    include_recommendations: true
+
+# Security settings
+security:
+  # Enable security scanning
+  enabled: true
+  
+  # Security checks to perform
+  checks:
+    - "vulnerabilities"
+    - "secrets"
+    - "permissions"
+    - "injection"
+    - "authentication"
+    - "authorization"
+  
+  # Severity levels to report
+  severity_levels:
+    - "critical"
+    - "high"
+    - "medium"
+    - "low"
+  
+  # Auto-block on security issues
+  auto_block:
+    enabled: true
+    severity_threshold: "high"
+
+# Performance settings
+performance:
+  # Enable performance analysis
+  enabled: true
+  
+  # Performance checks
+  checks:
+    - "memory_usage"
+    - "cpu_usage"
+    - "network_efficiency"
+    - "database_queries"
+    - "algorithm_complexity"
+  
+  # Performance thresholds
+  thresholds:
+    memory_usage: "medium"
+    cpu_usage: "medium"
+    response_time: "medium"
+
+# Code quality settings
+code_quality:
+  # Enable code quality analysis
+  enabled: true
+  
+  # Quality metrics
+  metrics:
+    - "complexity"
+    - "maintainability"
+    - "readability"
+    - "test_coverage"
+    - "documentation"
+  
+  # Quality thresholds
+  thresholds:
+    complexity: "medium"
+    maintainability: "medium"
+    test_coverage: 80
+
+# Testing settings
+testing:
+  # Enable test analysis
+  enabled: true
+  
+  # Test checks
+  checks:
+    - "coverage"
+    - "unit_tests"
+    - "integration_tests"
+    - "test_quality"
+    - "mocking"
+  
+  # Test requirements
+  requirements:
+    min_coverage: 80
+    require_unit_tests: true
+    require_integration_tests: false
+
+# Documentation settings
+documentation:
+  # Enable documentation analysis
+  enabled: true
+  
+  # Documentation checks
+  checks:
+    - "readme"
+    - "api_docs"
+    - "inline_comments"
+    - "function_docs"
+    - "examples"
+  
+  # Documentation requirements
+  requirements:
+    require_readme: true
+    require_api_docs: true
+    require_function_docs: true
+
+# Go-specific settings
+go:
+  # Go-specific analysis
+  enabled: true
+  
+  # Go checks
+  checks:
+    - "go_mod"
+    - "go_sum"
+    - "imports"
+    - "naming"
+    - "error_handling"
+    - "goroutines"
+    - "channels"
+    - "interfaces"
+    - "structs"
+    - "methods"
+  
+  # Go best practices
+  best_practices:
+    - "use_context"
+    - "proper_error_handling"
+    - "avoid_global_variables"
+    - "use_interfaces"
+    - "proper_testing"
+    - "use_go_modules"
+    - "proper_logging"
+    - "use_goroutines_safely"
+  
+  # Go linting rules
+  linting:
+    - "gofmt"
+    - "golint"
+    - "govet"
+    - "staticcheck"
+    - "ineffassign"
+    - "unused"
+    - "gosimple"
+
+# Kubernetes-specific settings
+kubernetes:
+  # Kubernetes-specific analysis
+  enabled: true
+  
+  # K8s checks
+  checks:
+    - "resource_limits"
+    - "security_context"
+    - "network_policies"
+    - "rbac"
+    - "secrets_management"
+    - "config_maps"
+    - "persistent_volumes"
+  
+  # K8s best practices
+  best_practices:
+    - "set_resource_limits"
+    - "use_security_context"
+    - "implement_network_policies"
+    - "least_privilege_rbac"
+    - "secure_secrets_management"
+    - "use_config_maps_for_config"
+    - "proper_persistent_volumes"
+
+# Pulumi-specific settings
+pulumi:
+  # Pulumi-specific analysis
+  enabled: true
+  
+  # Pulumi checks
+  checks:
+    - "resource_configuration"
+    - "state_management"
+    - "secrets_handling"
+    - "outputs"
+    - "dependencies"
+    - "resource_naming"
+  
+  # Pulumi best practices
+  best_practices:
+    - "use_secrets_for_sensitive_data"
+    - "proper_resource_naming"
+    - "manage_dependencies_correctly"
+    - "use_outputs_properly"
+    - "implement_proper_state_management"
+    - "use_resource_configuration_best_practices"
+
+# Custom rules
+custom_rules:
+  # Custom rule definitions
+  rules:
+    - name: "kubecost_integration"
+      description: "Check for proper Kubecost API integration"
+      pattern: "kubecost"
+      severity: "medium"
+      
+    - name: "pulumicost_plugin_structure"
+      description: "Verify proper PulumiCost plugin structure"
+      pattern: "pulumicost"
+      severity: "medium"
+      
+    - name: "grpc_implementation"
+      description: "Check for proper gRPC implementation"
+      pattern: "grpc"
+      severity: "high"
+      
+    - name: "version_management"
+      description: "Verify proper version management"
+      pattern: "version"
+      severity: "medium"
+
+# Notification settings
+notifications:
+  # Enable notifications
+  enabled: true
+  
+  # Notification channels
+  channels:
+    - "github"
+    - "slack"
+    - "email"
+  
+  # Notification triggers
+  triggers:
+    - "security_issues"
+    - "performance_issues"
+    - "breaking_changes"
+    - "review_complete"
+
+# Integration settings
+integrations:
+  # GitHub integration
+  github:
+    enabled: true
+    checks:
+      - "status_checks"
+      - "branch_protection"
+      - "required_reviews"
+  
+  # CI/CD integration
+  ci_cd:
+    enabled: true
+    providers:
+      - "github_actions"
+      - "jenkins"
+      - "gitlab_ci"
+  
+  # Security scanning integration
+  security_scanning:
+    enabled: true
+    providers:
+      - "snyk"
+      - "sonarqube"
+      - "codeql"
+
+# Advanced settings
+advanced:
+  # AI model settings
+  ai_model:
+    provider: "openai"
+    model: "gpt-4"
+    temperature: 0.1
+    max_tokens: 4000
+  
+  # Review caching
+  caching:
+    enabled: true
+    ttl: 3600
+  
+  # Rate limiting
+  rate_limiting:
+    enabled: true
+    requests_per_minute: 60
+  
+  # Debug mode
+  debug:
+    enabled: false
+    log_level: "info"
