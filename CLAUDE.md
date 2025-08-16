@@ -291,3 +291,71 @@ go run ./cmd/pulumicost-flexera --version
 - **Sensitive Data**: Redact sensitive information from error messages
 - **Context Propagation**: Use context.Context for request timeouts and cancellation
 - **Graceful Degradation**: Handle missing billing center mappings gracefully
+
+## Project Management & GitHub CLI
+
+### GitHub CLI Commands for Project Management
+```bash
+# List existing issues and milestones
+gh issue list --repo OWNER/REPO
+gh api /repos/OWNER/REPO/milestones
+
+# Create milestones with proper naming convention (YYYY-Q[1-4] - Description)
+gh api --method POST -H "Accept: application/vnd.github+json" /repos/OWNER/REPO/milestones \
+  -f title="2025-Q3 - Foundation & Core Features" \
+  -f due_on="2025-09-30T23:59:59Z"
+
+# Create issues with proper structure
+gh issue create --repo OWNER/REPO \
+  --title "Implement Core Plugin Functionality" \
+  --body "Detailed description with acceptance criteria" \
+  --label "enhancement,finops,core"
+
+# Assign issues to milestones and add labels
+gh issue edit ISSUE_NUMBER --repo OWNER/REPO --milestone "2025-Q3 - Foundation & Core Features"
+gh issue edit ISSUE_NUMBER --repo OWNER/REPO --add-label "priority:high"
+```
+
+### FinOps Project Management Patterns
+
+#### Milestone Planning Strategy
+- **Foundation Quarter**: Core functionality, basic integration, authentication
+- **Enhancement Quarter**: Advanced features, optimization, analytics
+- **Enterprise Quarter**: Multi-tenancy, governance, compliance
+- **Innovation Quarter**: AI/ML features, automation, advanced analytics
+
+#### Issue Categories for FinOps Tools
+- **Core Infrastructure**: gRPC servers, API clients, data processing
+- **Cost Management**: Billing centers, allocation, showback/chargeback
+- **Security & Compliance**: Authentication, encryption, audit trails  
+- **Performance**: Caching, concurrent processing, optimization
+- **Analytics**: Reporting, anomaly detection, trend analysis
+- **Integration**: Multi-cloud support, third-party connectors
+
+#### Priority Classification
+- **P0 (Critical)**: Core functionality, security vulnerabilities
+- **P1 (High)**: Major features, performance issues
+- **P2 (Medium)**: Enhancements, documentation, optimizations  
+- **P3 (Low)**: Nice-to-have features, minor improvements
+
+### Project Analysis Best Practices
+
+#### Pre-Project Management Checklist
+1. **Codebase Analysis**: Review existing files, architecture, dependencies
+2. **Current State Assessment**: Check existing issues, PRs, documentation
+3. **Gap Analysis**: Identify missing functionality, technical debt
+4. **Stakeholder Mapping**: Understand user personas (DevOps, FinOps, Finance teams)
+
+#### Comprehensive Issue Creation
+- **Clear Titles**: Use action verbs and specific scope
+- **Detailed Descriptions**: Include acceptance criteria, technical requirements
+- **Proper Labeling**: Use consistent labels for categorization and filtering
+- **Milestone Assignment**: Align with quarterly objectives and dependencies
+- **Priority Setting**: Consider business impact and technical complexity
+
+#### FinOps-Specific Considerations
+- **Cost Visibility**: Ensure transparency in cost reporting and allocation
+- **Multi-Cloud Support**: Plan for AWS, Azure, GCP integration patterns
+- **Billing Integration**: Consider enterprise billing systems and workflows
+- **Optimization Focus**: Include automated recommendations and alerting
+- **Governance Features**: Plan for policy enforcement and compliance reporting
