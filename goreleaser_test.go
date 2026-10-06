@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -31,9 +32,9 @@ func buildAssetPatterns(projectName, version string) map[string]bool {
 
 	// Test against multiple OS representations (as the installer does)
 	osNames := map[string][]string{
-		"linux":   {"linux"},
+		"linux":   {"linux", "Linux"},
 		"darwin":  {"darwin", "Darwin", "macos", "macOS", "MacOS"},
-		"windows": {"windows"},
+		"windows": {"windows", "Windows"},
 	}
 
 	// Test against multiple arch representations (as the installer does)
@@ -96,8 +97,9 @@ func TestGoreleaserAssetNames(t *testing.T) {
 	}
 
 	// Parse the name_template as a Go template
-	// Note: we don't need custom functions since we're using lowercase OS names
-	funcs := template.FuncMap{}
+	funcs := template.FuncMap{
+		"title": func(s string) string { return strings.ToUpper(s[:1]) + s[1:] },
+	}
 
 	tmpl, err := template.New("archive").Funcs(funcs).Parse(archive.NameTemplate)
 	if err != nil {
@@ -229,5 +231,41 @@ func TestGoreleaserAssetNamesBroken(t *testing.T) {
 		if strings.Contains(result, cfg.ProjectName) {
 			t.Errorf("broken template unexpectedly produced valid output: %s", result)
 		}
+	}
+}
+
+// TestGoreleaserArchivesUseTitleCaseOS keeps flexera's archive names in the shape every other
+// plugin uses: finfocus-plugin-<name>_<version>_<Os>_<arch>, with Linux, Darwin and Windows.
+func TestGoreleaserArchivesUseTitleCaseOS(t *testing.T) {
+	configFile, err := os.ReadFile(".goreleaser.yaml")
+	if err != nil {
+		t.Fatalf("failed to read .goreleaser.yaml: %v", err)
+	}
+	if !strings.Contains(string(configFile), "{{ title .Os }}") {
+		t.Fatal("archive name_template must use {{ title .Os }}")
+	}
+}
+
+// TestReleasePleaseTagOmitsComponent fails when release-please would prefix the tag with the
+// component name. GoReleaser parses the tag as semver and fails on finfocus-plugin-flexera-v0.1.0.
+func TestReleasePleaseTagOmitsComponent(t *testing.T) {
+	body, err := os.ReadFile("release-please-config.json")
+	if err != nil {
+		t.Fatalf("failed to read release-please-config.json: %v", err)
+	}
+	var cfg struct {
+		Packages map[string]struct {
+			IncludeComponentInTag *bool `json:"include-component-in-tag"`
+		} `json:"packages"`
+	}
+	if err = json.Unmarshal(body, &cfg); err != nil {
+		t.Fatalf("failed to parse release-please-config.json: %v", err)
+	}
+	root, ok := cfg.Packages["."]
+	if !ok {
+		t.Fatal("release-please-config.json has no root package")
+	}
+	if root.IncludeComponentInTag == nil || *root.IncludeComponentInTag {
+		t.Fatal(`root package must set "include-component-in-tag": false`)
 	}
 }
