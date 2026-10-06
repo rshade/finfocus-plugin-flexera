@@ -137,7 +137,8 @@ The binary registers `finfocus.v1.CostSourceService`.
 | `GetPricingSpec` | Billed-cost metadata. `rate_per_unit` is 0 |
 | `GetRecommendations` | Optima recommendations index. Savings is the impact. Dismissed and snoozed rows are omitted unless `include_dismissed` is true |
 | `DismissRecommendation` | Optima status update plus in-process dismissal |
-| Health, estimate, budgets, batch | Not implemented |
+| `GetBudgets` | Read-only Flexera budget index and budget report. No create, update, or delete |
+| Health, estimate, batch | Not implemented |
 
 ## v0.1.0 limitations
 
