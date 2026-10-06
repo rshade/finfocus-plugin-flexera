@@ -34,7 +34,10 @@ func (f *fakeAPI) CostsSelect(
 	return &flexeraapi.CostsSelectResponse{Rows: f.rows, RowsTruncated: f.truncated}, nil
 }
 
-func (f *fakeAPI) ForecastReport(_ context.Context, req flexeraapi.ForecastRequest) (*flexeraapi.ForecastResponse, error) {
+func (f *fakeAPI) ForecastReport(
+	_ context.Context,
+	req flexeraapi.ForecastRequest,
+) (*flexeraapi.ForecastResponse, error) {
 	f.forecastRequests = append(f.forecastRequests, req)
 	if f.forecastErr != nil {
 		return nil, f.forecastErr
@@ -144,8 +147,14 @@ func TestGetProjectedCostExtrapolates(t *testing.T) {
 	api := &fakeAPI{
 		currency: "USD",
 		rows: []flexeraapi.CostRow{
-			{Timestamp: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC), Metrics: map[string]float64{defaultCostMetric: 10}},
-			{Timestamp: time.Date(2026, 1, 2, 0, 0, 0, 0, time.UTC), Metrics: map[string]float64{defaultCostMetric: 20}},
+			{
+				Timestamp: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+				Metrics:   map[string]float64{defaultCostMetric: 10},
+			},
+			{
+				Timestamp: time.Date(2026, 1, 2, 0, 0, 0, 0, time.UTC),
+				Metrics:   map[string]float64{defaultCostMetric: 20},
+			},
 		},
 	}
 	srv := newTestServer(t, "nam")
@@ -183,7 +192,8 @@ func TestGetProjectedCostUsesForecastReport(t *testing.T) {
 	if len(api.forecastRequests) != 1 || api.forecastRequests[0].Granularity != "month" {
 		t.Fatalf("forecast request = %+v", api.forecastRequests)
 	}
-	if api.forecastRequests[0].Metric != defaultCostMetric || api.forecastRequests[0].LookbackPeriod != forecastLookbackMonths {
+	if api.forecastRequests[0].Metric != defaultCostMetric ||
+		api.forecastRequests[0].LookbackPeriod != forecastLookbackMonths {
 		t.Fatalf("forecast request = %+v", api.forecastRequests[0])
 	}
 }
