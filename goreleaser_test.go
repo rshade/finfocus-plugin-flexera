@@ -269,3 +269,31 @@ func TestReleasePleaseTagOmitsComponent(t *testing.T) {
 		t.Fatal(`root package must set "include-component-in-tag": false`)
 	}
 }
+
+// TestReleasePleaseBumpsPatchBeforeOneZero fails when a feat commit before 1.0 would bump the
+// minor version. Every other plugin releases pre-1.0 features as patch bumps.
+func TestReleasePleaseBumpsPatchBeforeOneZero(t *testing.T) {
+	body, err := os.ReadFile("release-please-config.json")
+	if err != nil {
+		t.Fatalf("failed to read release-please-config.json: %v", err)
+	}
+	var cfg struct {
+		Packages map[string]struct {
+			BumpMinorPreMajor         *bool `json:"bump-minor-pre-major"`
+			BumpPatchForMinorPreMajor *bool `json:"bump-patch-for-minor-pre-major"`
+		} `json:"packages"`
+	}
+	if err = json.Unmarshal(body, &cfg); err != nil {
+		t.Fatalf("failed to parse release-please-config.json: %v", err)
+	}
+	root, ok := cfg.Packages["."]
+	if !ok {
+		t.Fatal("release-please-config.json has no root package")
+	}
+	if root.BumpMinorPreMajor == nil || !*root.BumpMinorPreMajor {
+		t.Fatal(`root package must set "bump-minor-pre-major": true`)
+	}
+	if root.BumpPatchForMinorPreMajor == nil || !*root.BumpPatchForMinorPreMajor {
+		t.Fatal(`root package must set "bump-patch-for-minor-pre-major": true`)
+	}
+}
