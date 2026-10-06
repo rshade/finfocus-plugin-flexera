@@ -25,6 +25,20 @@ type Client interface {
 	// ForecastReport calls Bill Analysis forecasts/report.
 	// The request and response fields follow the generated client models.
 	ForecastReport(ctx context.Context, req ForecastRequest) (*ForecastResponse, error)
+
+	// RecommendationsIndex calls Optima recommendations index.
+	// The result items are the generated recommendation models.
+	RecommendationsIndex(
+		ctx context.Context,
+		params *flexera.OptimaRecommendationsRecommendationsIndexParams,
+	) ([]flexera.OptimaRecommendationsRecommendationResultResponse, error)
+
+	// UpdateRecommendationStatus calls Optima recommendations updatestatus.
+	// A 2xx response is success. The generated response has no success body.
+	UpdateRecommendationStatus(
+		ctx context.Context,
+		body flexera.OptimaRecommendationsRecommendationsUpdateStatusRequestBody,
+	) error
 }
 
 // ForecastRequest is the forecasts/report body from the generated client.

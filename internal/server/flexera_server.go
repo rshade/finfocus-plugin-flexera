@@ -64,6 +64,8 @@ type FlexeraServer struct {
 	metric           string
 	currency         currencyCache
 	rpcTimeout       time.Duration
+	dismissMu        sync.Mutex
+	dismissed        map[string]time.Time
 }
 
 type currencyCache struct {
@@ -113,12 +115,27 @@ func (s *FlexeraServer) GetPluginInfo(
 			pbc.PluginCapability_PLUGIN_CAPABILITY_ACTUAL_COSTS,
 			pbc.PluginCapability_PLUGIN_CAPABILITY_PROJECTED_COSTS,
 			pbc.PluginCapability_PLUGIN_CAPABILITY_PRICING_SPEC,
+			pbc.PluginCapability_PLUGIN_CAPABILITY_RECOMMENDATIONS,
+			pbc.PluginCapability_PLUGIN_CAPABILITY_DISMISS_RECOMMENDATIONS,
 		},
 		Metadata: map[string]string{
-			"implemented_rpcs": "Name,GetPluginInfo,Supports,GetActualCost,GetProjectedCost,GetPricingSpec",
+			"implemented_rpcs": implementedRPCs(),
 			"flexera_regions":  "nam,eu,apac",
 		},
 	}, nil
+}
+
+func implementedRPCs() string {
+	return strings.Join([]string{
+		"Name",
+		"GetPluginInfo",
+		"Supports",
+		"GetActualCost",
+		"GetProjectedCost",
+		"GetPricingSpec",
+		"GetRecommendations",
+		"DismissRecommendation",
+	}, ",")
 }
 
 // Supports reports whether the plugin can price the requested resource.

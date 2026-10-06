@@ -5,22 +5,29 @@ import (
 	"testing"
 	"time"
 
+	unified "github.com/flexera-public/unified-go-client"
 	"github.com/rshade/finfocus-plugin-flexera/internal/flexeraapi"
 	pbc "github.com/rshade/finfocus-spec/sdk/go/proto/finfocus/v1"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type fakeAPI struct {
-	currency         string
-	currencyErr      error
-	currencyCalls    int
-	calls            []flexeraapi.CostsSelectRequest
-	rows             []flexeraapi.CostRow
-	truncated        bool
-	err              error
-	forecastAmounts  []float64
-	forecastErr      error
-	forecastRequests []flexeraapi.ForecastRequest
+	currency            string
+	currencyErr         error
+	currencyCalls       int
+	calls               []flexeraapi.CostsSelectRequest
+	rows                []flexeraapi.CostRow
+	truncated           bool
+	err                 error
+	forecastAmounts     []float64
+	forecastErr         error
+	forecastRequests    []flexeraapi.ForecastRequest
+	recommendations     []unified.OptimaRecommendationsRecommendationResultResponse
+	recommendationErr   error
+	recommendationCalls int
+	recommendationQuery *unified.OptimaRecommendationsRecommendationsIndexParams
+	statusUpdates       []unified.OptimaRecommendationsRecommendationsUpdateStatusRequestBody
+	statusUpdateErr     error
 }
 
 func (f *fakeAPI) CostsSelect(
@@ -48,6 +55,26 @@ func (f *fakeAPI) ForecastReport(
 	return &flexeraapi.ForecastResponse{
 		Segments: []flexeraapi.ForecastSegment{{ForecastAmounts: append([]float64{}, f.forecastAmounts...)}},
 	}, nil
+}
+
+func (f *fakeAPI) RecommendationsIndex(
+	_ context.Context,
+	params *unified.OptimaRecommendationsRecommendationsIndexParams,
+) ([]unified.OptimaRecommendationsRecommendationResultResponse, error) {
+	f.recommendationCalls++
+	f.recommendationQuery = params
+	if f.recommendationErr != nil {
+		return nil, f.recommendationErr
+	}
+	return append([]unified.OptimaRecommendationsRecommendationResultResponse{}, f.recommendations...), nil
+}
+
+func (f *fakeAPI) UpdateRecommendationStatus(
+	_ context.Context,
+	body unified.OptimaRecommendationsRecommendationsUpdateStatusRequestBody,
+) error {
+	f.statusUpdates = append(f.statusUpdates, body)
+	return f.statusUpdateErr
 }
 
 func (f *fakeAPI) CurrencyCode(context.Context) (string, error) {

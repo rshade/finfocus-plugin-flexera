@@ -92,7 +92,7 @@ The plugin sends the caller's resource id or ARN as the `resource_id` filter val
 | [#1](https://github.com/rshade/finfocus-plugin-flexera/issues/1) | Fix Code Quality Issues and Linting Violations | Code Quality | DONE (close) | `make lint` reports 0 issues (verified 2026-10-05); counts in the issue are stale |
 | [#2](https://github.com/rshade/finfocus-plugin-flexera/issues/2) | Implement Missing Protocol Buffer Definitions and gRPC Integration | Core Feature | CLOSED | Covered by tasks A1-A3 |
 | [#3](https://github.com/rshade/finfocus-plugin-flexera/issues/3) | Enhance Error Handling and Security for Production Deployment | Enhancement | PARTIAL, SPLIT | TLS min 1.2, timeout, and SDK token refresh exist; redaction, retry, per-RPC timeouts, status-code mapping are open (E1-E5) |
-| [#4](https://github.com/rshade/finfocus-plugin-flexera/issues/4) | Implement Advanced Cost Optimization Recommendations Engine | Feature | POST-V0.1, NOT-STARTED | Narrow to `GetRecommendations`/`DismissRecommendation` (spec v0.7.5); Optima recommendations API is the data source |
+| [#4](https://github.com/rshade/finfocus-plugin-flexera/issues/4) | Implement Advanced Cost Optimization Recommendations Engine | Feature | DONE (R1) | `GetRecommendations` and `DismissRecommendation` map Optima recommendations. Rightsizing engines, alerting, and carbon stay out of scope |
 | [#5](https://github.com/rshade/finfocus-plugin-flexera/issues/5) | Implement Budget Management and Alerting System | Feature | POST-V0.1, RE-SCOPE | Narrow to read-only `GetBudgets`; unified client has budget operations; alerting is out of scope |
 | [#6](https://github.com/rshade/finfocus-plugin-flexera/issues/6) | Enhanced Showback and Chargeback Reporting System | Feature | POST-V0.1, RE-SCOPE | Reporting is out of scope; billing-center resolver in `internal/flexera` is not wired into the server (see F1) |
 | [#7](https://github.com/rshade/finfocus-plugin-flexera/issues/7) | Implement Comprehensive CI/CD Pipeline with Security and Quality Gates | DevOps | PARTIAL, SPLIT | Test, lint, govulncheck, goreleaser, commitlint, prose exist; Release Please fails on main (missing token); no coverage, race, CodeQL, or branch protection (CI1-CI6) |
@@ -356,7 +356,7 @@ Coverage on 2026-10-05: `internal/server` 81.7%, `internal/flexera` 61.0%, `inte
 
 ### Optional RPCs (post-v0.1, need credentials)
 
-- **R1** (#4, #10): `GetRecommendations` and `DismissRecommendation` from the Optima recommendations operations. Dismissal needs state or an upstream status update. Update `implemented_rpcs` and capabilities.
+- **R1** (#4, #10): Done. `GetRecommendations` and `DismissRecommendation` map Optima recommendations. Dismissal updates upstream status and in-process state. `implemented_rpcs` and capabilities include both RPCs.
 - **R2** (#5): Read-only `GetBudgets` from `BudgetBudgetIndex` and `BudgetBudgetReport`. Verify the report shape against a live org.
 - **R3** (#10): Populate `ImpactMetric` carbon and energy. BLOCKED: no sustainability endpoint in the unified client.
 - **R4** (#9): Add resource types (for example `aws-lambda`, `azure-sql`, `gcp-gke`) after validating service dimension names against a live org.
