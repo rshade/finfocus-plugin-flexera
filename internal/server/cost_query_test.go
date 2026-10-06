@@ -28,6 +28,15 @@ type fakeAPI struct {
 	recommendationQuery *unified.OptimaRecommendationsRecommendationsIndexParams
 	statusUpdates       []unified.OptimaRecommendationsRecommendationsUpdateStatusRequestBody
 	statusUpdateErr     error
+	budgetList          *unified.BudgetBudgetList
+	budgetReports       map[string]*unified.BudgetBudgetReportRowList
+	budgetByWindow      map[string]*unified.BudgetBudgetReportRowList
+	budgetWindowMiss    *unified.BudgetBudgetReportRowList
+	budgetShows         map[string]*unified.BudgetBudget
+	budgetParams        []*unified.BudgetBudgetReportParams
+	budgetErr           error
+	budgetOps           []string
+	budgetShowIDs       []string
 }
 
 func (f *fakeAPI) CostsSelect(
@@ -75,6 +84,60 @@ func (f *fakeAPI) UpdateRecommendationStatus(
 ) error {
 	f.statusUpdates = append(f.statusUpdates, body)
 	return f.statusUpdateErr
+}
+
+func (f *fakeAPI) BudgetIndex(context.Context) (*unified.BudgetBudgetList, error) {
+	f.budgetOps = append(f.budgetOps, "BudgetBudgetIndex")
+	if f.budgetErr != nil {
+		return nil, f.budgetErr
+	}
+	return f.budgetList, nil
+}
+
+func (f *fakeAPI) BudgetShow(_ context.Context, id string) (*unified.BudgetBudget, error) {
+	f.budgetOps = append(f.budgetOps, "BudgetBudgetShow")
+	f.budgetShowIDs = append(f.budgetShowIDs, id)
+	if f.budgetErr != nil {
+		return nil, f.budgetErr
+	}
+	if f.budgetShows == nil {
+		return &unified.BudgetBudget{}, nil
+	}
+	shown := f.budgetShows[id]
+	if shown == nil {
+		return &unified.BudgetBudget{}, nil
+	}
+	return shown, nil
+}
+
+func (f *fakeAPI) BudgetReport(
+	_ context.Context,
+	id string,
+	params *unified.BudgetBudgetReportParams,
+) (*unified.BudgetBudgetReportRowList, error) {
+	f.budgetOps = append(f.budgetOps, "BudgetBudgetReport")
+	if params != nil {
+		copied := *params
+		f.budgetParams = append(f.budgetParams, &copied)
+	}
+	if f.budgetErr != nil {
+		return nil, f.budgetErr
+	}
+	if params != nil && f.budgetByWindow != nil {
+		if report, ok := f.budgetByWindow[params.StartAt]; ok {
+			return report, nil
+		}
+		if f.budgetWindowMiss != nil {
+			return f.budgetWindowMiss, nil
+		}
+	}
+	if f.budgetReports == nil {
+		return &unified.BudgetBudgetReportRowList{}, nil
+	}
+	if report := f.budgetReports[id]; report != nil {
+		return report, nil
+	}
+	return &unified.BudgetBudgetReportRowList{}, nil
 }
 
 func (f *fakeAPI) CurrencyCode(context.Context) (string, error) {
