@@ -117,6 +117,7 @@ func (s *FlexeraServer) GetPluginInfo(
 			pbc.PluginCapability_PLUGIN_CAPABILITY_PRICING_SPEC,
 			pbc.PluginCapability_PLUGIN_CAPABILITY_RECOMMENDATIONS,
 			pbc.PluginCapability_PLUGIN_CAPABILITY_DISMISS_RECOMMENDATIONS,
+			pbc.PluginCapability_PLUGIN_CAPABILITY_BUDGETS,
 		},
 		Metadata: map[string]string{
 			"implemented_rpcs": implementedRPCs(),
@@ -135,6 +136,7 @@ func implementedRPCs() string {
 		"GetPricingSpec",
 		"GetRecommendations",
 		"DismissRecommendation",
+		"GetBudgets",
 	}, ",")
 }
 

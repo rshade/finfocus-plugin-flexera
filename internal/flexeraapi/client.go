@@ -39,6 +39,19 @@ type Client interface {
 		ctx context.Context,
 		body flexera.OptimaRecommendationsRecommendationsUpdateStatusRequestBody,
 	) error
+
+	// BudgetIndex calls the read-only budget index. Links carry id and name.
+	BudgetIndex(ctx context.Context) (*flexera.BudgetBudgetList, error)
+
+	// BudgetShow calls the read-only budget show. Segments carry budgetAmounts.
+	BudgetShow(ctx context.Context, id string) (*flexera.BudgetBudget, error)
+
+	// BudgetReport calls the read-only budget report. Rows carry budget and spend metrics.
+	BudgetReport(
+		ctx context.Context,
+		id string,
+		params *flexera.BudgetBudgetReportParams,
+	) (*flexera.BudgetBudgetReportRowList, error)
 }
 
 // ForecastRequest is the forecasts/report body from the generated client.
