@@ -36,7 +36,8 @@
           "hidden": true
         }
       ],
-      "package-name": "finfocus-plugin-flexera"
+      "package-name": "finfocus-plugin-flexera",
+      "include-component-in-tag": false
     }
   }
 }
