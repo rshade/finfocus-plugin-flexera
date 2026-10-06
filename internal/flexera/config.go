@@ -40,7 +40,7 @@ func LoadConfigFromEnvOrFile(path string) (Config, error) {
 		ClientID:         os.Getenv("FLEXERA_CLIENT_ID"),
 		ClientSecret:     os.Getenv("FLEXERA_CLIENT_SECRET"),
 		DefaultWindow:    getenvDefault("FLEXERA_DEFAULT_WINDOW", "30d"),
-		Timeout:          getenvDuration("FLEXERA_TIMEOUT", 30*time.Second),
+		Timeout:          getenvDuration("FLEXERA_TIMEOUT", defaultTimeout),
 		TLSSkipVerify:    os.Getenv("FLEXERA_TLS_SKIP_VERIFY") == "true",
 		CostMetric:       getenvDefault("FLEXERA_COST_METRIC", defaultCostMetric),
 		BillingCenterIDs: splitCSV(os.Getenv("FLEXERA_BILLING_CENTER_IDS")),
@@ -82,7 +82,10 @@ func LoadConfigFromEnvOrFile(path string) (Config, error) {
 	return cfg, nil
 }
 
-const defaultCostMetric = "cost_amortized_unblended_adj"
+const (
+	defaultCostMetric = "cost_amortized_unblended_adj"
+	defaultTimeout    = 30 * time.Second
+)
 
 // HasCostCredentials reports whether config can authenticate a Flexera call.
 func (c Config) HasCostCredentials() bool {
@@ -149,7 +152,7 @@ func getenvDuration(k string, def time.Duration) time.Duration {
 	return def
 }
 
-// getBaseURLForRegion returns the appropriate Flexera Optima API endpoint for the region
+// getBaseURLForRegion returns the appropriate Flexera Optima API endpoint for the region.
 func getBaseURLForRegion(region string) string {
 	switch strings.ToLower(region) {
 	case "nam", "north-america":
@@ -164,7 +167,7 @@ func getBaseURLForRegion(region string) string {
 	}
 }
 
-// GetCostsURL returns the full URL for the costs endpoint
+// GetCostsURL returns the full URL for the costs endpoint.
 func (c Config) GetCostsURL() string {
 	return fmt.Sprintf("%s/orgs/%s/costs", c.BaseURL, c.OrgID)
 }

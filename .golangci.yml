@@ -446,7 +446,14 @@ linters:
           - dupl
           - errcheck
           - funlen
+          - gocognit
           - goconst
           - gosec
+          - govet
+          - mnd
           - noctx
+          - revive
+          - testifylint
+          - testpackage
+          - usetesting
           - wrapcheck

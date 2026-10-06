@@ -149,8 +149,8 @@ func New(
 	}
 
 	// Validate and create OAuth client.
-	if err := helper.ValidateOAuth2Credentials(authCfg); err != nil {
-		return nil, fmt.Errorf("validate oauth credentials: %w", err)
+	if credErr := helper.ValidateOAuth2Credentials(authCfg); credErr != nil {
+		return nil, fmt.Errorf("validate oauth credentials: %w", credErr)
 	}
 
 	client, err := helper.NewOAuthClientWithResponses(authCfg)

@@ -80,12 +80,14 @@ The following variables can be set during build:
 ## Example Output
 
 ### Basic Version String
-```
+
+```text
 v1.0.0 (a1b2c3d, 2024-01-15_14:30:00_UTC, linux/amd64)
 ```
 
 ### Full Version Information
-```
+
+```text
 Version: 1.0.0
 Build Date: 2024-01-15_14:30:00_UTC
 Git Commit: a1b2c3d
@@ -107,6 +109,6 @@ go test ./pkg/version
 
 The version information is automatically logged when the application starts:
 
-```
+```text
 2024/01/15 14:30:00 finfocus-plugin-flexera starting, v1.0.0 (a1b2c3d, 2024-01-15_14:30:00_UTC, linux/amd64)
 ```

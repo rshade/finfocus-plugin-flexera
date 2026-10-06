@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -17,19 +18,20 @@ type Client struct {
 	bcResolver *BillingCenterResolver
 }
 
-// Region returns the configured Flexera deployment region (nam, eu, or apac).
-func (c *Client) Region() string {
-	if c == nil {
-		return ""
-	}
-	return c.cfg.Region
-}
+const (
+	httpErrorStatus  = 300
+	defaultCostLimit = 1000
+	minIDParts       = 2
+	serviceIDParts   = 3
+)
 
-func NewClient(ctx context.Context, cfg Config) (*Client, error) {
+func NewClient(_ context.Context, cfg Config) (*Client, error) {
+	tlsConfig := &tls.Config{MinVersion: tls.VersionTLS12}
+	if cfg.TLSSkipVerify {
+		tlsConfig.InsecureSkipVerify = true
+	}
 	transport := &http.Transport{
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: cfg.TLSSkipVerify,
-		},
+		TLSClientConfig: tlsConfig,
 	}
 
 	client := &Client{
@@ -48,7 +50,15 @@ func NewClient(ctx context.Context, cfg Config) (*Client, error) {
 	return client, nil
 }
 
-// CostQuery represents a request to the Flexera Optima costs API
+// Region returns the configured Flexera deployment region (nam, eu, or apac).
+func (c *Client) Region() string {
+	if c == nil {
+		return ""
+	}
+	return c.cfg.Region
+}
+
+// CostQuery represents a request to the Flexera Optima costs API.
 type CostQuery struct {
 	StartAt     string            `json:"start_at"`    // "2025-01-01"
 	EndAt       string            `json:"end_at"`      // "2025-01-31"
@@ -59,7 +69,7 @@ type CostQuery struct {
 	Limit       int               `json:"limit,omitempty"`
 }
 
-// CostPoint represents a single cost data point from Flexera
+// CostPoint represents a single cost data point from Flexera.
 type CostPoint struct {
 	Timestamp  string             `json:"timestamp"`
 	Dimensions map[string]string  `json:"dimensions"`
@@ -73,7 +83,7 @@ type CostPoint struct {
 	ResourceType string `json:"resource_type,omitempty"`
 }
 
-// CostResponse represents the response from Flexera costs API
+// CostResponse represents the response from Flexera costs API.
 type CostResponse struct {
 	Results []CostPoint `json:"results"`
 	Meta    struct {
@@ -85,7 +95,7 @@ type CostResponse struct {
 	} `json:"meta"`
 }
 
-// Costs queries the Flexera Optima costs API
+// Costs queries the Flexera Optima costs API.
 func (c *Client) Costs(ctx context.Context, q CostQuery) (CostResponse, error) {
 	reqURL := c.cfg.GetCostsURL()
 
@@ -95,7 +105,7 @@ func (c *Client) Costs(ctx context.Context, q CostQuery) (CostResponse, error) {
 		return CostResponse{}, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", reqURL, strings.NewReader(string(reqData)))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, reqURL, strings.NewReader(string(reqData)))
 	if err != nil {
 		return CostResponse{}, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -111,13 +121,13 @@ func (c *Client) Costs(ctx context.Context, q CostQuery) (CostResponse, error) {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode >= 300 {
+	if resp.StatusCode >= httpErrorStatus {
 		return CostResponse{}, fmt.Errorf("flexera api error: %d %s", resp.StatusCode, resp.Status)
 	}
 
 	var out CostResponse
-	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
-		return out, fmt.Errorf("failed to decode response: %w", err)
+	if decodeErr := json.NewDecoder(resp.Body).Decode(&out); decodeErr != nil {
+		return out, fmt.Errorf("failed to decode response: %w", decodeErr)
 	}
 
 	// Enrich each cost point with billing center information based on tags
@@ -128,7 +138,7 @@ func (c *Client) Costs(ctx context.Context, q CostQuery) (CostResponse, error) {
 	return out, nil
 }
 
-// BuildCostQuery creates a CostQuery from resource ID and time range
+// BuildCostQuery creates a CostQuery from resource ID and time range.
 func (c *Client) BuildCostQuery(resourceID, startTime, endTime string) CostQuery {
 	query := CostQuery{
 		StartAt:     formatDateForFlexera(startTime),
@@ -137,7 +147,7 @@ func (c *Client) BuildCostQuery(resourceID, startTime, endTime string) CostQuery
 		Metrics:     []string{"cost_amortized_unblended_adj"},
 		Dimensions:  []string{"vendor", "service", "region", "vendor_account"},
 		Filter:      make(map[string]string),
-		Limit:       1000,
+		Limit:       defaultCostLimit,
 	}
 
 	// Parse resourceID and set appropriate filters
@@ -151,40 +161,40 @@ func (c *Client) BuildCostQuery(resourceID, startTime, endTime string) CostQuery
 	return query
 }
 
-// parseResourceID converts Pulumi-style resource IDs to Flexera filters
+// parseResourceID converts Pulumi-style resource IDs to Flexera filters.
 func parseResourceID(resourceID string) map[string]string {
 	filters := make(map[string]string)
 
 	parts := strings.Split(resourceID, "/")
-	if len(parts) < 2 {
+	if len(parts) < minIDParts {
 		return filters
 	}
 
 	switch parts[0] {
 	case "vendor_account":
-		if len(parts) >= 2 {
+		if len(parts) >= minIDParts {
 			filters["vendor_account"] = parts[1]
 		}
 	case "service":
-		if len(parts) >= 3 {
+		if len(parts) >= serviceIDParts {
 			filters["vendor"] = parts[1]
 			filters["service"] = parts[2]
 		}
 	case "region":
-		if len(parts) >= 3 {
+		if len(parts) >= serviceIDParts {
 			filters["vendor"] = parts[1]
 			filters["region"] = parts[2]
 		}
 	case "resource_group":
-		if len(parts) >= 2 {
+		if len(parts) >= minIDParts {
 			filters["resource_group"] = parts[1]
 		}
 	case "billing_center":
-		if len(parts) >= 2 {
+		if len(parts) >= minIDParts {
 			filters["rbd_bc"] = parts[1] // Rule-based dimension for billing center
 		}
 	case "tag":
-		if len(parts) >= 3 {
+		if len(parts) >= serviceIDParts {
 			filters[fmt.Sprintf("tag:%s", parts[1])] = parts[2]
 		}
 	}
@@ -192,7 +202,7 @@ func parseResourceID(resourceID string) map[string]string {
 	return filters
 }
 
-// EnrichCostPointWithBillingCenter adds billing center information to a cost point based on tags
+// EnrichCostPointWithBillingCenter adds billing center information to a cost point based on tags.
 func (c *Client) EnrichCostPointWithBillingCenter(point *CostPoint) {
 	if c.bcResolver == nil {
 		return // No billing center mappings configured
@@ -213,15 +223,15 @@ func (c *Client) EnrichCostPointWithBillingCenter(point *CostPoint) {
 	}
 }
 
-// GetBillingCenterForTags resolves a billing center ID from a set of tags
+// GetBillingCenterForTags resolves a billing center ID from a set of tags.
 func (c *Client) GetBillingCenterForTags(tags map[string]string) (string, error) {
 	if c.bcResolver == nil {
-		return "", fmt.Errorf("billing center mappings not configured")
+		return "", errors.New("billing center mappings not configured")
 	}
 	return c.bcResolver.ResolveBillingCenter(tags)
 }
 
-// formatDateForFlexera converts time strings to Flexera API format
+// formatDateForFlexera converts time strings to Flexera API format.
 func formatDateForFlexera(timeStr string) string {
 	if timeStr == "" {
 		return time.Now().UTC().Format("2006-01-02")
@@ -244,11 +254,11 @@ func formatDateForFlexera(timeStr string) string {
 	return timeStr
 }
 
-// GetBudgets retrieves budget information from Flexera
+// GetBudgets retrieves budget information from Flexera.
 func (c *Client) GetBudgets(ctx context.Context) (interface{}, error) {
 	budgetURL := fmt.Sprintf("%s/orgs/%s/budgets", c.cfg.BaseURL, c.cfg.OrgID)
 
-	req, err := http.NewRequestWithContext(ctx, "GET", budgetURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, budgetURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create budget request: %w", err)
 	}
@@ -262,19 +272,19 @@ func (c *Client) GetBudgets(ctx context.Context) (interface{}, error) {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode >= 300 {
+	if resp.StatusCode >= httpErrorStatus {
 		return nil, fmt.Errorf("flexera budget api error: %d %s", resp.StatusCode, resp.Status)
 	}
 
 	var result interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode budget response: %w", err)
+	if decodeErr := json.NewDecoder(resp.Body).Decode(&result); decodeErr != nil {
+		return nil, fmt.Errorf("failed to decode budget response: %w", decodeErr)
 	}
 
 	return result, nil
 }
 
-// GetCloudAccounts retrieves cloud account information
+// GetCloudAccounts retrieves cloud account information.
 func (c *Client) GetCloudAccounts(ctx context.Context, vendor string) (interface{}, error) {
 	accountsURL := fmt.Sprintf("%s/orgs/%s/cloud_accounts", c.cfg.BaseURL, c.cfg.OrgID)
 
@@ -284,7 +294,7 @@ func (c *Client) GetCloudAccounts(ctx context.Context, vendor string) (interface
 		accountsURL += "?" + params.Encode()
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "GET", accountsURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, accountsURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create accounts request: %w", err)
 	}
@@ -298,28 +308,28 @@ func (c *Client) GetCloudAccounts(ctx context.Context, vendor string) (interface
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode >= 300 {
+	if resp.StatusCode >= httpErrorStatus {
 		return nil, fmt.Errorf("flexera accounts api error: %d %s", resp.StatusCode, resp.Status)
 	}
 
 	var result interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode accounts response: %w", err)
+	if decodeErr := json.NewDecoder(resp.Body).Decode(&result); decodeErr != nil {
+		return nil, fmt.Errorf("failed to decode accounts response: %w", decodeErr)
 	}
 
 	return result, nil
 }
 
 // GenerateFlexeraRBDConfig creates a complete Flexera rule-based dimension configuration
-// for billing center allocation based on the configured tag mappings
-func (c *Client) GenerateFlexeraRBDConfig() (*FlexeraRBDConfig, error) {
+// for billing center allocation based on the configured tag mappings.
+func (c *Client) GenerateFlexeraRBDConfig() (*RBDConfig, error) {
 	if c.bcResolver == nil {
-		return nil, fmt.Errorf("billing center mappings not configured")
+		return nil, errors.New("billing center mappings not configured")
 	}
 
 	rules := c.bcResolver.BuildFlexeraRBDRules()
 
-	config := &FlexeraRBDConfig{
+	config := &RBDConfig{
 		RuleBasedDimensions: []RuleBasedDimension{
 			{
 				ID:   "rbd_bc",
@@ -337,19 +347,19 @@ func (c *Client) GenerateFlexeraRBDConfig() (*FlexeraRBDConfig, error) {
 	return config, nil
 }
 
-// FlexeraRBDConfig represents the complete RBD configuration for Flexera
-type FlexeraRBDConfig struct {
+// RBDConfig represents the complete rule-based dimension configuration for Flexera.
+type RBDConfig struct {
 	RuleBasedDimensions []RuleBasedDimension `json:"rule_based_dimensions"`
 }
 
-// RuleBasedDimension represents a single rule-based dimension in Flexera
+// RuleBasedDimension represents a single rule-based dimension in Flexera.
 type RuleBasedDimension struct {
 	ID         string       `json:"id"`
 	Name       string       `json:"name"`
 	DatedRules []DatedRules `json:"dated_rules"`
 }
 
-// DatedRules represents rules that are effective from a specific date
+// DatedRules represents rules that are effective from a specific date.
 type DatedRules struct {
 	EffectiveAt string    `json:"effective_at"`
 	Rules       []RBDRule `json:"rules"`
