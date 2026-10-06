@@ -115,6 +115,7 @@ type CostRow struct {
 type clientImpl struct {
 	org    int64
 	client *flexera.ClientWithResponses
+	retry  retryPolicy
 }
 
 // New creates a new Client wrapper for Bill Analysis costs queries.
@@ -150,12 +151,12 @@ func New(
 
 	// Validate and create OAuth client.
 	if credErr := helper.ValidateOAuth2Credentials(authCfg); credErr != nil {
-		return nil, fmt.Errorf("validate oauth credentials: %w", credErr)
+		return nil, RedactError(fmt.Errorf("validate oauth credentials: %w", credErr))
 	}
 
 	client, err := helper.NewOAuthClientWithResponses(authCfg)
 	if err != nil {
-		return nil, fmt.Errorf("create oauth client: %w", err)
+		return nil, RedactError(fmt.Errorf("create oauth client: %w", err))
 	}
 
 	return &clientImpl{org: orgID, client: client}, nil
@@ -163,21 +164,45 @@ func New(
 
 // CostsSelect queries the Bill Analysis costs/select endpoint.
 func (c *clientImpl) CostsSelect(ctx context.Context, req CostsSelectRequest) (*CostsSelectResponse, error) {
+	if err := validateSelect(req); err != nil {
+		return nil, err
+	}
+	body := selectBody(req)
+	resp, err := doWithRetry(
+		ctx,
+		c.retryPolicy(),
+		func(ctx context.Context) (*flexera.BillAnalysisCostsSelectResponse, int, http.Header, error) {
+			return c.selectOnce(ctx, body)
+		},
+	)
+	if err != nil {
+		return nil, RedactError(fmt.Errorf("costs select call failed: %w", err))
+	}
+	payload, accepted, err := selectPayload(resp)
+	if err != nil {
+		return nil, err
+	}
+	return rowsFromPayload(payload, accepted), nil
+}
+
+func validateSelect(req CostsSelectRequest) error {
 	if len(req.BillingCenterIDs) == 0 {
-		return nil, errors.New("billing_center_ids is required")
+		return errors.New("billing_center_ids is required")
 	}
 	if len(req.Metrics) == 0 {
-		return nil, errors.New("metrics is required")
+		return errors.New("metrics is required")
 	}
 	if len(req.Dimensions) == 0 {
-		return nil, errors.New("dimensions is required")
+		return errors.New("dimensions is required")
 	}
 	if req.Limit <= 0 || req.Limit > 100000 {
-		return nil, fmt.Errorf("limit must be between 1 and 100000, got %d", req.Limit)
+		return fmt.Errorf("limit must be between 1 and 100000, got %d", req.Limit)
 	}
+	return nil
+}
 
-	// Build the request body for the unified client.
-	billAnalysisReq := flexera.BillAnalysisSelectRequestBody{
+func selectBody(req CostsSelectRequest) flexera.BillAnalysisSelectRequestBody {
+	body := flexera.BillAnalysisSelectRequestBody{
 		BillingCenterIds: req.BillingCenterIDs,
 		Metrics:          req.Metrics,
 		Dimensions:       req.Dimensions,
@@ -185,28 +210,28 @@ func (c *clientImpl) CostsSelect(ctx context.Context, req CostsSelectRequest) (*
 		EndAt:            req.EndAt,
 		Limit:            req.Limit,
 	}
-
-	// Set optional fields.
 	if req.Granularity != nil {
 		gran := flexera.BillAnalysisSelectRequestBodyGranularity(*req.Granularity)
-		billAnalysisReq.Granularity = &gran
+		body.Granularity = &gran
 	}
 	if req.Filter != nil {
-		// Convert our filter expression to the unified client's format.
-		billAnalysisReq.Filter = convertFilterExpression(req.Filter)
+		body.Filter = convertFilterExpression(req.Filter)
 	}
+	return body
+}
 
-	// Call the Flexera API.
-	resp, err := c.client.BillAnalysisCostsSelectWithResponse(ctx, c.org, billAnalysisReq)
-	if err != nil {
-		return nil, fmt.Errorf("costs select call failed: %w", err)
+func (c *clientImpl) selectOnce(
+	ctx context.Context,
+	body flexera.BillAnalysisSelectRequestBody,
+) (*flexera.BillAnalysisCostsSelectResponse, int, http.Header, error) {
+	resp, err := c.client.BillAnalysisCostsSelectWithResponse(ctx, c.org, body)
+	if err != nil || resp == nil {
+		return nil, 0, nil, err
 	}
+	return resp, resp.StatusCode(), headerFrom(resp), nil
+}
 
-	payload, accepted, err := selectPayload(resp)
-	if err != nil {
-		return nil, err
-	}
-
+func rowsFromPayload(payload *flexera.BillAnalysisAnalyticsQueryResult, accepted bool) *CostsSelectResponse {
 	result := &CostsSelectResponse{
 		Rows:     make([]CostRow, len(payload.Rows)),
 		Accepted: accepted,
@@ -221,24 +246,45 @@ func (c *clientImpl) CostsSelect(ctx context.Context, req CostsSelectRequest) (*
 			Metrics:    row.Metrics,
 		}
 	}
-
-	return result, nil
+	return result
 }
 
 // CurrencyCode reads settings/currency_code for the org.
 func (c *clientImpl) CurrencyCode(ctx context.Context) (string, error) {
-	resp, err := c.client.BillAnalysisCurrencySettingShowWithResponse(ctx, c.org)
+	resp, err := doWithRetry(
+		ctx,
+		c.retryPolicy(),
+		func(ctx context.Context) (*flexera.BillAnalysisCurrencySettingShowResponse, int, http.Header, error) {
+			return c.currencyOnce(ctx)
+		},
+	)
 	if err != nil {
-		return "", fmt.Errorf("currency_code call failed: %w", err)
+		return "", RedactError(fmt.Errorf("currency_code call failed: %w", err))
 	}
-	if resp.StatusCode() != http.StatusOK || resp.JSON200 == nil {
-		return "", fmt.Errorf("currency_code returned %d", resp.StatusCode())
+	if resp == nil || resp.StatusCode() != http.StatusOK || resp.JSON200 == nil {
+		status := 0
+		var body []byte
+		if resp != nil {
+			status = resp.StatusCode()
+			body = resp.Body
+		}
+		return "", statusErr("currency_code", status, body)
 	}
 	code := strings.TrimSpace(resp.JSON200.Value)
 	if code == "" {
 		return "", errors.New("currency_code is empty")
 	}
 	return code, nil
+}
+
+func (c *clientImpl) currencyOnce(
+	ctx context.Context,
+) (*flexera.BillAnalysisCurrencySettingShowResponse, int, http.Header, error) {
+	resp, err := c.client.BillAnalysisCurrencySettingShowWithResponse(ctx, c.org)
+	if err != nil || resp == nil {
+		return nil, 0, nil, err
+	}
+	return resp, resp.StatusCode(), currencyHeader(resp), nil
 }
 
 // ForecastReport calls the generated BillAnalysisForecastsReport method.
@@ -262,12 +308,24 @@ func (c *clientImpl) ForecastReport(ctx context.Context, req ForecastRequest) (*
 		Metric:           flexera.BillAnalysisReportRequestBody3Metric(req.Metric),
 		Filter:           convertFilterExpression(req.Filter),
 	}
-	resp, err := c.client.BillAnalysisForecastsReportWithResponse(ctx, c.org, body)
+	resp, err := doWithRetry(
+		ctx,
+		c.retryPolicy(),
+		func(ctx context.Context) (*flexera.BillAnalysisForecastsReportResponse, int, http.Header, error) {
+			return c.forecastOnce(ctx, body)
+		},
+	)
 	if err != nil {
-		return nil, fmt.Errorf("forecasts/report call failed: %w", err)
+		return nil, RedactError(fmt.Errorf("forecasts/report call failed: %w", err))
 	}
-	if resp.StatusCode() != http.StatusOK || resp.JSON200 == nil || resp.JSON200.Segments == nil {
-		return nil, fmt.Errorf("forecasts/report returned %d", resp.StatusCode())
+	if resp == nil || resp.StatusCode() != http.StatusOK || resp.JSON200 == nil || resp.JSON200.Segments == nil {
+		status := 0
+		var raw []byte
+		if resp != nil {
+			status = resp.StatusCode()
+			raw = resp.Body
+		}
+		return nil, statusErr("forecasts/report", status, raw)
 	}
 	out := &ForecastResponse{Segments: make([]ForecastSegment, len(*resp.JSON200.Segments))}
 	for i, segment := range *resp.JSON200.Segments {
@@ -279,6 +337,38 @@ func (c *clientImpl) ForecastReport(ctx context.Context, req ForecastRequest) (*
 		}
 	}
 	return out, nil
+}
+
+func (c *clientImpl) forecastOnce(
+	ctx context.Context,
+	body flexera.BillAnalysisReportRequestBody3,
+) (*flexera.BillAnalysisForecastsReportResponse, int, http.Header, error) {
+	resp, err := c.client.BillAnalysisForecastsReportWithResponse(ctx, c.org, body)
+	if err != nil || resp == nil {
+		return nil, 0, nil, err
+	}
+	return resp, resp.StatusCode(), forecastHeader(resp), nil
+}
+
+func headerFrom(resp *flexera.BillAnalysisCostsSelectResponse) http.Header {
+	if resp == nil || resp.HTTPResponse == nil {
+		return nil
+	}
+	return resp.HTTPResponse.Header
+}
+
+func currencyHeader(resp *flexera.BillAnalysisCurrencySettingShowResponse) http.Header {
+	if resp == nil || resp.HTTPResponse == nil {
+		return nil
+	}
+	return resp.HTTPResponse.Header
+}
+
+func forecastHeader(resp *flexera.BillAnalysisForecastsReportResponse) http.Header {
+	if resp == nil || resp.HTTPResponse == nil {
+		return nil
+	}
+	return resp.HTTPResponse.Header
 }
 
 func selectPayload(
@@ -303,7 +393,7 @@ func selectPayload(
 		}
 		return payload, true, nil
 	default:
-		return nil, false, fmt.Errorf("costs select returned %d: %s", resp.StatusCode(), resp.Body)
+		return nil, false, statusErr("costs/select", resp.StatusCode(), resp.Body)
 	}
 }
 

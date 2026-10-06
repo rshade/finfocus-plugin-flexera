@@ -7,6 +7,8 @@ GIT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unkno
 GIT_STATE := $(shell if git diff --quiet 2>/dev/null; then echo "clean"; else echo "dirty"; fi)
 BUILD_DATE := $(shell date -u '+%Y-%m-%d_%H:%M:%S_UTC')
 
+.PHONY: all build test check-coverage test-integration vet lint lint-markdown validate-workflows govulncheck validate ensure install version version-info clean
+
 all: build
 
 build:
@@ -19,8 +21,17 @@ build:
 		-X github.com/rshade/finfocus-plugin-flexera/pkg/version.GitState=$(GIT_STATE)" \
 		-o bin/$(BINARY) ./cmd/finfocus-plugin-flexera
 
+COVERPROFILE ?= coverage.out
+COVER_MIN ?= 80
+# Set FORCE_COVERPROFILE to a cover profile to prove the gate fails.
+FORCE_COVERPROFILE ?=
+
 test:
-	go test ./...
+	go test -race -covermode=atomic -coverprofile=$(COVERPROFILE) ./...
+	$(MAKE) check-coverage COVERPROFILE=$(if $(FORCE_COVERPROFILE),$(FORCE_COVERPROFILE),$(COVERPROFILE))
+
+check-coverage:
+	awk -f scripts/covergate.awk -v min=$(COVER_MIN) $(COVERPROFILE)
 
 test-integration:
 	go test -tags=integration ./test/integration/...

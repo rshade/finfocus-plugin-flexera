@@ -11,6 +11,14 @@ A FinFocus **CostSource** plugin that reads cloud cost from Flexera One Cloud Co
 - **Rule-based dimensions** for custom cost allocation and chargeback
 - Pluggable, isolated process compatible with FinFocus plugin host
 
+## Getting started
+
+See [docs/getting-started.md](docs/getting-started.md) for a local build, the
+refresh-token or service-account settings, and where to copy the org id and a
+billing center id from Flexera One. Common failures are in
+[docs/troubleshooting.md](docs/troubleshooting.md). Questions that come up
+while wiring the plugin are in [docs/faq.md](docs/faq.md).
+
 ## Installation (dev)
 
 ```bash
@@ -78,8 +86,8 @@ FLEXERA_CLIENT_ID            # Service account client id (with CLIENT_SECRET)
 FLEXERA_CLIENT_SECRET        # Service account secret
 FLEXERA_BILLING_CENTER_IDS   # Comma-separated ids required for cost RPCs
 FLEXERA_COST_METRIC          # Default cost_amortized_unblended_adj
-FLEXERA_API_TOKEN            # Legacy bearer token; not used for costs/select
-FLEXERA_BASE_URL             # Legacy HTTP client base URL override
+FLEXERA_BASE_URL             # Optional Bill Analysis base URL override
+FLEXERA_LOG_LEVEL            # debug, info, warn, or error (default info)
 FLEXERA_DEFAULT_WINDOW       # Default query window, e.g. 30d
 FLEXERA_TIMEOUT              # HTTP timeout, e.g. 30s
 FLEXERA_TLS_SKIP_VERIFY      # true or false (default false)
@@ -233,7 +241,7 @@ billingCenterMappings:
    - Direct tag mappings (highest priority)
    - Hierarchical mappings (by priority order)
    - Default billing center (fallback)
-3. **Cost Enrichment**: Cost data is automatically enriched with billing center IDs
+3. **Cost Enrichment**: `GetActualCost` is automatically enriched with a billing center id on each result's lineage when a `tag:` or `tag_` dimension matches `billingCenterMappings`
 4. **Flexera Integration**: Mappings can generate Flexera RBD rules for native integration
 
 ### Use Cases

@@ -89,19 +89,20 @@ The plugin sends the caller's resource id or ARN as the `resource_id` filter val
 
 | Issue | Title | Type | Status | Notes |
 |-------|-------|------|--------|-------|
-| [#1](https://github.com/rshade/finfocus-plugin-flexera/issues/1) | Fix Code Quality Issues and Linting Violations | Code Quality | POST-V0.1 | 126 real golangci-lint findings (godot:42, mnd:20, goimports:10, revive:8, govet:8, others); post-v0.1.0 code quality pass |
-| [#2](https://github.com/rshade/finfocus-plugin-flexera/issues/2) | Implement Missing Protocol Buffer Definitions and gRPC Integration | Core Feature | COVERS-TASKS-A1-A3 | Maps to v0.1.0 RPC integration |
-| [#3](https://github.com/rshade/finfocus-plugin-flexera/issues/3) | Enhance Error Handling and Security for Production Deployment | Enhancement | POST-V0.1 | Security hardening; post-v0.1.0 |
-| [#4](https://github.com/rshade/finfocus-plugin-flexera/issues/4) | Implement Advanced Cost Optimization Recommendations Engine | Feature | POST-V0.1 | Recommendations not in v0.1.0 scope |
-| [#5](https://github.com/rshade/finfocus-plugin-flexera/issues/5) | Implement Budget Management and Alerting System | Feature | POST-V0.1 | Budget APIs not in v0.1.0 |
-| [#6](https://github.com/rshade/finfocus-plugin-flexera/issues/6) | Enhanced Showback and Chargeback Reporting System | Feature | POST-V0.1 | Billing center logic exists but no reporting |
-| [#7](https://github.com/rshade/finfocus-plugin-flexera/issues/7) | Implement Comprehensive CI/CD Pipeline with Security and Quality Gates | DevOps | COVERED | Toolchain baseline established (test, release-please, commitlint, vale/markdownlint); awaiting first CI run; requires RELEASE_PLEASE_TOKEN secret for automation |
-| [#8](https://github.com/rshade/finfocus-plugin-flexera/issues/8) | Comprehensive Testing Strategy for Enterprise FinOps Deployment | Testing | COVERS-TASK-A5 | Unit tests for v0.1.0 |
-| [#9](https://github.com/rshade/finfocus-plugin-flexera/issues/9) | Multi-Cloud Cost Management and Analytics Platform | Architecture | POST-V0.1 | Multi-provider; out of v0.1.0 scope |
-| [#10](https://github.com/rshade/finfocus-plugin-flexera/issues/10) | AI-Driven Cost Optimization and Sustainability Metrics | Feature | POST-V0.1 | Requires ML service integration |
-| [#11](https://github.com/rshade/finfocus-plugin-flexera/issues/11) | Improve Documentation and User Experience for FinOps Practitioners | Docs | COVERS-TASK-A6 | README/CLAUDE.md documentation |
+| [#1](https://github.com/rshade/finfocus-plugin-flexera/issues/1) | Fix Code Quality Issues and Linting Violations | Code Quality | DONE (close) | `make lint` reports 0 issues (verified 2026-10-05); counts in the issue are stale |
+| [#2](https://github.com/rshade/finfocus-plugin-flexera/issues/2) | Implement Missing Protocol Buffer Definitions and gRPC Integration | Core Feature | CLOSED | Covered by tasks A1-A3 |
+| [#3](https://github.com/rshade/finfocus-plugin-flexera/issues/3) | Enhance Error Handling and Security for Production Deployment | Enhancement | PARTIAL, SPLIT | TLS min 1.2, timeout, and SDK token refresh exist; redaction, retry, per-RPC timeouts, status-code mapping are open (E1-E5) |
+| [#4](https://github.com/rshade/finfocus-plugin-flexera/issues/4) | Implement Advanced Cost Optimization Recommendations Engine | Feature | POST-V0.1, NOT-STARTED | Narrow to `GetRecommendations`/`DismissRecommendation` (spec v0.7.5); Optima recommendations API is the data source |
+| [#5](https://github.com/rshade/finfocus-plugin-flexera/issues/5) | Implement Budget Management and Alerting System | Feature | POST-V0.1, RE-SCOPE | Narrow to read-only `GetBudgets`; unified client has budget operations; alerting is out of scope |
+| [#6](https://github.com/rshade/finfocus-plugin-flexera/issues/6) | Enhanced Showback and Chargeback Reporting System | Feature | POST-V0.1, RE-SCOPE | Reporting is out of scope; billing-center resolver in `internal/flexera` is not wired into the server (see F1) |
+| [#7](https://github.com/rshade/finfocus-plugin-flexera/issues/7) | Implement Comprehensive CI/CD Pipeline with Security and Quality Gates | DevOps | PARTIAL, SPLIT | Test, lint, govulncheck, goreleaser, commitlint, prose exist; Release Please fails on main (missing token); no coverage, race, CodeQL, or branch protection (CI1-CI6) |
+| [#8](https://github.com/rshade/finfocus-plugin-flexera/issues/8) | Comprehensive Testing Strategy for Enterprise FinOps Deployment | Testing | PARTIAL, SPLIT | Coverage: server 81.7%, flexera 61.0%, flexeraapi 47.5%, main 0%; 95% target is unrealistic, use 80% (T1-T5) |
+| [#9](https://github.com/rshade/finfocus-plugin-flexera/issues/9) | Multi-Cloud Cost Management and Analytics Platform | Architecture | WONT-DO-AS-SCOPED | aws/azure/gcp routing already works; retitle to "extend resource-type coverage" or close |
+| [#10](https://github.com/rshade/finfocus-plugin-flexera/issues/10) | AI-Driven Cost Optimization and Sustainability Metrics | Feature | WONT-DO-AS-SCOPED | Split into recommendations (see #4) and `ImpactMetric` carbon/energy, which is BLOCKED on a Flexera data source |
+| [#11](https://github.com/rshade/finfocus-plugin-flexera/issues/11) | Improve Documentation and User Experience for FinOps Practitioners | Docs | PARTIAL | README and examples exist; manifest and stale `FLEXERA_API_TOKEN` references are wrong (D3-D5) |
+| [#12](https://github.com/rshade/finfocus-plugin-flexera/issues/12) | Adopt OpenSpec as the change process after v0.1.0 | Process | POST-V0.1 | Gated on the v0.1.0 tag; nothing started (O1-O7) |
 
-**Verification:** 11 issues found; 0 missing from live repo.
+**Verification:** 12 issues found (11 open, 1 closed); 0 missing from live repo. Status refreshed 2026-10-05 from per-issue code analysis.
 
 ---
 
@@ -295,6 +296,86 @@ Live Flexera captures are still owner input. The RPCs call `internal/flexeraapi`
 
 ---
 
+## Issue-Driven Follow-up Tasks
+
+Derived from a per-issue code analysis on 2026-10-05. The umbrella issues are wish lists that mostly describe a platform, not a stateless `CostSourceService` plugin. Each group below keeps only the slice that fits the plugin. Task ids are proposed child issues.
+
+### Working a task
+
+File each task as a GitHub issue, then run it through `/pick-issue`. One task is one issue is one PR. The command lives in `.claude/commands/pick-issue.md`. It branches, implements with tests, validates, and commits; it does not push.
+
+### Close or re-scope
+
+- **#1**: Close. Lint is clean.
+- **#9, #10**: Close as won't-do-as-scoped, or retitle. Dashboards, ML, NLP, SOC2, and uptime targets belong to the host or to Flexera One.
+- **#5, #6**: Retitle to the narrow slice (read-only `GetBudgets`; billing-center attribution on cost rows). Alerting, ERP, and reporting are out of scope.
+
+### CI and release (issue #7)
+
+Release Please failed on `main` with "Input required and not supplied: token". The owner has since added the `RELEASE_PLEASE_TOKEN` secret that `.github/workflows/release-please.yml` reads.
+
+- **CI1**: Confirm the next push to `main` runs Release Please successfully. The secret's presence could not be verified from this environment.
+- **CI2**: Add `-race -coverprofile` to `test.yml` and the Makefile `test` target, with an 80% gate.
+- **CI3**: Add CodeQL and a secret scanner workflow.
+- **CI4**: Enable branch protection on `main` with required checks (the API returns 404 today).
+- **CI5**: Make govulncheck blocking once the grpc fix lands (it is `continue-on-error` now).
+- **CI6**: Add SBOM and signing to `.goreleaser.yaml` after the first tagged release.
+
+### Hardening (issue #3)
+
+Already present: TLS 1.2 minimum, `FLEXERA_TIMEOUT`, SDK-managed token refresh, wrapped errors.
+
+- **E1**: Redaction helper with tests proving tokens never reach logs or errors.
+- **E2**: Per-RPC `context.WithTimeout` in `internal/server`.
+- **E3**: Retry with backoff and jitter for 429 and 5xx, honoring `Retry-After`, in `internal/flexeraapi`.
+- **E4**: Map errors to gRPC status codes with one taxonomy.
+- **E5**: Replace `log.Printf` in `main.go` with `slog` and add `FLEXERA_LOG_LEVEL`. Warn when `tlsSkipVerify` is set.
+- Later: config file permission check, rate limiter, circuit breaker, health service, metrics, tracing. Confirm what finfocus-core expects before adding any listener.
+
+### Tests (issue #8)
+
+Coverage on 2026-10-05: `internal/server` 81.7%, `internal/flexera` 61.0%, `internal/flexeraapi` 47.5%, `cmd` 0%. Target 80%, not 95%.
+
+- **T1**: Raise `internal/flexeraapi` to 80% (error, token, and 202 paths).
+- **T2**: Raise `internal/flexera` to 80%.
+- **T3**: Extract `run()` from `main.go` and test it.
+- **T4**: Add context-cancellation and error-injection tests (timeouts, 429, 5xx).
+- **T5**: Add fuzz and benchmark tests for the select-payload builder and config parsing (post-v0.1).
+
+### Documentation (issue #11)
+
+- **D3**: Fix `plugin.manifest.json`. `apiToken` is marked required, and `refreshToken`, `clientId`, `clientSecret`, `billingCenterIds`, and `costMetric` are missing. Check whether `goreleaser_test.go` or the host validates it first.
+- **D4**: Remove stale `FLEXERA_API_TOKEN` guidance from `CLAUDE.md` (Testing Approach) and the README.
+- **D5**: Add `docs/troubleshooting.md`, a FAQ, `CONTRIBUTING.md`, and a getting-started path that shows how to find the org id and billing center id.
+- Later: architecture, security, and performance docs; a diagnostic subcommand. Drop the community and training items.
+
+### Billing center code (issue #6)
+
+- **F1**: `internal/flexera/billing_center.go` and the related `Client` methods are not called by `internal/server`. Wire them in or delete them. Until then the README claim that cost data is "automatically enriched" is wrong.
+- **F2**: Delete the unused legacy `Client.GetBudgets`, `Costs`, `BuildCostQuery`, and `GetCloudAccounts` if nothing references them (check first).
+
+### Optional RPCs (post-v0.1, need credentials)
+
+- **R1** (#4, #10): `GetRecommendations` and `DismissRecommendation` from the Optima recommendations operations. Dismissal needs state or an upstream status update. Update `implemented_rpcs` and capabilities.
+- **R2** (#5): Read-only `GetBudgets` from `BudgetBudgetIndex` and `BudgetBudgetReport`. Verify the report shape against a live org.
+- **R3** (#10): Populate `ImpactMetric` carbon and energy. BLOCKED: no sustainability endpoint in the unified client.
+- **R4** (#9): Add resource types (for example `aws-lambda`, `azure-sql`, `gcp-gke`) after validating service dimension names against a live org.
+
+### OpenSpec adoption (issue #12)
+
+Gate: do not start before the v0.1.0 tag and release exist.
+
+- **O1**: Tag and release v0.1.0, then confirm with `gh release view`.
+- **O2**: Pin `npm:@fission-ai/openspec` in `mise.toml`. Decide whether to drop the pinned `pipx:specify-cli`.
+- **O3**: Run `openspec init` and commit the generated files with `chore:` or `docs:` types so Release Please does not react.
+- **O4**: Align markdownlint scope between the Makefile (`README.md *.md`, root only) and CI, and check Vale scope for generated files.
+- **O5**: Add `.claude/commands/pick-issue.md`. Done: the command exists; revisit it once OpenSpec changes replace `TASKS.md`.
+- **O6**: Add `make spec-validate` and a CI step running `openspec validate --all --strict`.
+- **O7**: Write baseline specs only for tested behavior. Blocked on recorded-response tests, which conflicts with the "captured responses not required" decision above; resolve that first.
+- After adoption, freeze this file as history, update `CLAUDE.md` so agents stop following it, and turn the A5 HealthCheck deferral into the first OpenSpec change.
+
+---
+
 ## Release Criteria for v0.1.0
 
 - [x] All Phase A and C tasks complete (A5 HealthCheck stays deferred to v0.1.1)
@@ -302,7 +383,7 @@ Live Flexera captures are still owner input. The RPCs call `internal/flexeraapi`
 - [x] `go build ./...` succeeds
 - [x] `go test ./... -race` passes. `internal/server` coverage is 81.4%
 - [x] `go vet ./...` passes
-- [x] `golangci-lint run` is not clean. Pre-existing findings are tracked in issue #1
+- [x] `golangci-lint run` is clean (0 issues, verified 2026-10-05). Issue #1 can be closed
 - [x] README.md, CLAUDE.md, and TASKS.md pass markdownlint
 - [x] Legacy product name removed from CLAUDE.md, README samples, and testdata
 - [ ] Tag v0.1.0-alpha created (not created in this change)
@@ -333,8 +414,8 @@ A live call still needs credentials in the environment:
 
 ## Post-v0.1.0 Roadmap (Issue References)
 
-- **#4, #5, #10**: Advanced recommendations, budgets, AI optimization (requires credentials)
-- **#3**: Security hardening for production (auth caching, token refresh, audit logging)
-- **#6**: Billing center reporting (leverage existing BillingCenterResolver)
-- **#9**: Multi-cloud expansion (scope out for v0.2)
-- **#11**: User documentation polish (after v0.1.0 stability)
+- **v0.1.x**: CI1-CI4 (#7), E1-E5 (#3), T1-T4 (#8), D3-D5 (#11), F1-F2 (#6)
+- **v0.1.1**: A5 HealthCheck (ObservabilityService)
+- **v0.2**: R1 recommendations (#4), R2 budgets (#5), R4 resource types (#9), O1-O7 OpenSpec (#12)
+- **Blocked**: R3 carbon and energy metrics (#10), pending a Flexera data source
+- **Closed or won't-do**: #1 (done), #9 and #10 as scoped, and the reporting, ERP, and alerting parts of #5 and #6

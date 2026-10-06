@@ -4,7 +4,8 @@
 # Basic Flexera configuration
 region: nam
 orgId: "12345"
-apiToken: "your-jwt-token-here"
+# Refresh token, or clientId plus clientSecret. Cost RPCs do not use a pasted access token.
+refreshToken: ""
 defaultWindow: 30d
 timeout: 30s
 tlsSkipVerify: false

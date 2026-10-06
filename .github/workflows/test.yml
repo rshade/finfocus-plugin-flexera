@@ -28,7 +28,7 @@ jobs:
           cache: true
 
       - name: Run tests
-        run: go test ./...
+        run: make test
 
       - name: Run go vet
         run: go vet ./...

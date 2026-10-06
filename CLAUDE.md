@@ -84,8 +84,13 @@ Uses `cost_amortized_unblended_adj` as the primary cost metric for accurate cost
 ### Error Handling
 
 - HTTP client includes timeout support via context
+- `GetActualCost`, `GetProjectedCost`, and `GetPricingSpec` each apply their own deadline (`FLEXERA_TIMEOUT`, default 30s)
+- `internal/flexeraapi` retries HTTP 429 and 5xx with backoff and jitter and honors `Retry-After`. Other 4xx responses are not retried
+- The same dependency failure maps to the same gRPC status on all three cost RPCs
+- Refresh tokens, client secrets, bearer tokens, and JWTs are redacted from error strings
+- Startup logging uses `slog` and `FLEXERA_LOG_LEVEL`. A warning is logged when `tlsSkipVerify` is set
 - The unified client refreshes the access token from a refresh token or service account
-- All errors are propagated with context
+- `make test` runs `go test -race -covermode=atomic` and fails when `internal/flexera` or `internal/flexeraapi` is under 80% statement coverage
 
 ### Cost calculation
 
@@ -93,7 +98,7 @@ Uses `cost_amortized_unblended_adj` as the primary cost metric for accurate cost
 
 ### Testing
 
-`make test` runs unit tests with a fake Flexera client. `make test-integration` calls Bill Analysis and skips unless `FLEXERA_ORG_ID`, `FLEXERA_BILLING_CENTER_IDS`, and OAuth credentials are set. `go test -race ./...` is the race check.
+`make test` runs unit tests with a fake Flexera client. Recipe targets are `.PHONY` because a `test/` directory would otherwise make `make test` a no-op. `make test-integration` calls Bill Analysis and skips unless `FLEXERA_ORG_ID`, `FLEXERA_BILLING_CENTER_IDS`, and OAuth credentials are set. `go test -race ./...` is the race check.
 
 ### Troubleshooting
 
@@ -130,7 +135,7 @@ The plugin depends on:
 
 - Unit tests for individual components (client, config, server methods)
 - Integration tests can use the testdata/ JSON files
-- For live testing, set `FLEXERA_API_TOKEN` and `FLEXERA_ORG_ID` environment variables
+- For a live call, set a numeric `FLEXERA_ORG_ID`, `FLEXERA_BILLING_CENTER_IDS`, and either `FLEXERA_REFRESH_TOKEN` or `FLEXERA_CLIENT_ID` plus `FLEXERA_CLIENT_SECRET`
 
 ## Common Development Tasks
 
@@ -151,10 +156,10 @@ grpcurl -plaintext localhost:50051 describe finfocus.v1.CostSourceService
 
 ### Modifying Flexera API Calls
 
-The HTTP client in `client.go` handles the Flexera Optima API interaction. To add new endpoints:
-1. Add new methods to the Client struct
-2. Define request/response types matching Flexera API schemas
-3. Handle the API call with proper error handling and timeout
+Cost RPCs go through `internal/flexeraapi`. `internal/flexera/client.go` resolves billing centers and builds RBD config. To call another Bill Analysis endpoint:
+1. Add a method on the flexeraapi client
+2. Use the generated unified-go-client request types
+3. Send the call through the shared retry helper so HTTP 429 and 5xx are retried and token material is redacted
 
 ## Flexera-Specific Notes
 
@@ -209,7 +214,7 @@ billingCenterMappings:
 
 ### Usage
 
-- Cost data is automatically enriched with billing center IDs
+- `GetActualCost` is automatically enriched with a billing center id on the result lineage when tag mappings match `tag:` or `tag_` dimensions
 - Use `client.GetBillingCenterForTags()` to resolve billing centers programmatically
 - Generate Flexera RBD configs with `client.GenerateFlexeraRBDConfig()`
 
@@ -270,7 +275,7 @@ This project was converted from an earlier cost plugin. Key learnings:
 #### Configuration Best Practices
 
 - **Auto-Configuration**: Use region to auto-configure API endpoints
-- **Validation**: Validate required fields (orgId, apiToken) at startup
+- **Validation**: Validate a numeric org id plus a refresh token or client id and secret at startup
 - **Hierarchical Config**: Support both env vars and YAML for flexibility
 - **Pulumi Patterns**: Follow Pulumi-style config conventions for consistency
 
@@ -317,13 +322,14 @@ go test ./internal/flexera -v
 #### Configuration Validation
 
 ```bash
-# Test with environment variables
-export FLEXERA_ORG_ID="test-org"
-export FLEXERA_API_TOKEN="test-token"
-export FLEXERA_REGION="nam"
-
-# Validate config loading
+# Show the version without serving
 go run ./cmd/finfocus-plugin-flexera --version
+
+# Live calls need a numeric org id, billing center ids, and OAuth credentials
+export FLEXERA_ORG_ID="12345"
+export FLEXERA_BILLING_CENTER_IDS="billing-center-id"
+export FLEXERA_REFRESH_TOKEN="refresh-token"
+export FLEXERA_REGION="nam"
 ```
 
 ### File Organization Patterns
@@ -332,7 +338,7 @@ go run ./cmd/finfocus-plugin-flexera --version
 
 - `internal/flexera/`: Core Flexera API integration
   - `config.go`: Configuration loading and validation
-  - `client.go`: HTTP client and API calls
+  - `client.go`: Billing-center enrichment and RBD config. Cost RPCs use `internal/flexeraapi`
   - `billing_center.go`: Tag-to-billing-center mapping logic
 - `internal/server/`: gRPC server implementation
 - `cmd/finfocus-plugin-flexera/`: Main application entry point

@@ -63,6 +63,7 @@ type FlexeraServer struct {
 	billingCenterIDs []string
 	metric           string
 	currency         currencyCache
+	rpcTimeout       time.Duration
 }
 
 type currencyCache struct {
@@ -154,6 +155,11 @@ func (s *FlexeraServer) GetActualCost(
 	ctx context.Context,
 	q *pbc.GetActualCostRequest,
 ) (*pbc.GetActualCostResponse, error) {
+	ctx, cancel, err := s.beginRPC(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer cancel()
 	if q == nil {
 		return nil, status.Error(codes.InvalidArgument, "request is required")
 	}
@@ -204,11 +210,15 @@ func (s *FlexeraServer) GetActualCost(
 		if !ok {
 			continue
 		}
-		out.Results = append(out.Results, &pbc.ActualCostResult{
+		result := &pbc.ActualCostResult{
 			Timestamp: timestamppb.New(row.Timestamp),
 			Cost:      roundCurrency(amount, currency),
 			Source:    pluginName,
-		})
+		}
+		if bcID := s.billingCenterID(row.Dimensions); bcID != "" {
+			result.Lineage = billingLineage(resourceID, bcID)
+		}
+		out.Results = append(out.Results, result)
 	}
 	sortCostResults(out.GetResults())
 	return out, nil
@@ -234,7 +244,7 @@ func (s *FlexeraServer) selectCosts(
 			Filter:           filter,
 		})
 		if err != nil {
-			return nil, status.Errorf(codes.Unavailable, "flexera costs/select: %v", err)
+			return nil, mapFailure(err)
 		}
 		if resp.RowsTruncated {
 			return nil, status.Error(codes.ResourceExhausted, "flexera costs/select truncated the result")
@@ -249,6 +259,11 @@ func (s *FlexeraServer) GetProjectedCost(
 	ctx context.Context,
 	req *pbc.GetProjectedCostRequest,
 ) (*pbc.GetProjectedCostResponse, error) {
+	ctx, cancel, err := s.beginRPC(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer cancel()
 	if req == nil || req.GetResource() == nil {
 		return nil, status.Error(codes.InvalidArgument, "resource descriptor is required")
 	}
@@ -312,6 +327,11 @@ func (s *FlexeraServer) GetPricingSpec(
 	ctx context.Context,
 	req *pbc.GetPricingSpecRequest,
 ) (*pbc.GetPricingSpecResponse, error) {
+	ctx, cancel, err := s.beginRPC(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer cancel()
 	if req == nil || req.GetResource() == nil {
 		return nil, status.Error(codes.InvalidArgument, "resource descriptor is required")
 	}
@@ -325,7 +345,11 @@ func (s *FlexeraServer) GetPricingSpec(
 		region = resource.GetRegion()
 	}
 	currency := currencyUSD
-	if code, err := s.currencyCode(ctx); err == nil && code != "" {
+	code, currencyErr := s.currencyCode(ctx)
+	if currencyErr != nil && status.Code(currencyErr) != codes.FailedPrecondition {
+		return nil, currencyErr
+	}
+	if currencyErr == nil && code != "" {
 		currency = code
 	}
 	return &pbc.GetPricingSpecResponse{

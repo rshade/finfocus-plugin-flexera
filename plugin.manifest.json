@@ -28,10 +28,41 @@
       "required": true,
       "env": "FLEXERA_ORG_ID"
     },
+    "refreshToken": {
+      "type": "string",
+      "description": "Flexera One refresh token. Provide this or both clientId and clientSecret.",
+      "required": false,
+      "env": "FLEXERA_REFRESH_TOKEN"
+    },
+    "clientId": {
+      "type": "string",
+      "description": "Flexera One service account client id. Required with clientSecret when refreshToken is unset.",
+      "required": false,
+      "env": "FLEXERA_CLIENT_ID"
+    },
+    "clientSecret": {
+      "type": "string",
+      "description": "Flexera One service account client secret.",
+      "required": false,
+      "env": "FLEXERA_CLIENT_SECRET"
+    },
+    "billingCenterIds": {
+      "type": "array",
+      "description": "Billing center ids sent on every costs/select and forecasts/report call.",
+      "required": true,
+      "env": "FLEXERA_BILLING_CENTER_IDS"
+    },
+    "costMetric": {
+      "type": "string",
+      "description": "Bill Analysis metric. Default is cost_amortized_unblended_adj.",
+      "required": false,
+      "default": "cost_amortized_unblended_adj",
+      "env": "FLEXERA_COST_METRIC"
+    },
     "apiToken": {
       "type": "string",
-      "description": "Legacy bearer token. Cost RPCs use refreshToken or clientId and clientSecret.",
-      "required": true,
+      "description": "Legacy bearer token. Cost RPCs do not use it.",
+      "required": false,
       "env": "FLEXERA_API_TOKEN"
     },
     "baseUrl": {

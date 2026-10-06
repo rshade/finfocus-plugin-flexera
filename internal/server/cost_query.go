@@ -92,7 +92,7 @@ func (s *FlexeraServer) currencyCode(ctx context.Context) (string, error) {
 
 	code, err := s.api.CurrencyCode(ctx)
 	if err != nil {
-		return "", status.Errorf(codes.Unavailable, "flexera currency: %v", err)
+		return "", mapFailure(err)
 	}
 	s.currency.mu.Lock()
 	s.currency.code = code
