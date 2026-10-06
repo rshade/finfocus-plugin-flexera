@@ -29,7 +29,7 @@ vet:
 	go vet ./...
 
 lint:
-	golangci-lint run
+	golangci-lint run ./...
 
 lint-markdown:
 	npx markdownlint-cli README.md *.md --ignore node_modules
@@ -38,22 +38,13 @@ validate-workflows:
 	actionlint .github/workflows/*.yml
 
 govulncheck:
-	go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./...
+	govulncheck ./...
 
 validate: vet lint govulncheck
 
-depend:
-	@echo "Installing Go development tools..."
-	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@v2.3.1
-	@go install golang.org/x/tools/cmd/goimports@latest
-	@go install github.com/fatih/gomodifytags@latest
-	@go install github.com/josharian/impl@latest
-	@go install github.com/cweill/gotests/gotests@latest
-	@go install github.com/golang/mock/mockgen@latest
-	@go install github.com/axw/gocov/gocov@latest
-	@go install github.com/AlekSi/gocov-xml@latest
-	@go install github.com/tebeka/go2xunit@latest
-	@echo "Go development tools installed successfully!"
+# Tools are pinned in mise.toml (Go 1.27.1, golangci-lint 2.14.0).
+ensure:
+	mise install
 
 install:
 	mkdir -p $$HOME/.finfocus/plugins/flexera/$(VERSION)

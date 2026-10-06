@@ -38,10 +38,18 @@ jobs:
         with:
           version: v2.14.0
 
+      # mise's go: backend needs the Go version pinned in mise.toml. setup-go
+      # above is a separate toolchain and is not visible to that backend.
+      - name: Install govulncheck
+        uses: jdx/mise-action@v5
+        with:
+          install_only: true
+          install_args: go go:golang.org/x/vuln/cmd/govulncheck
+
       - name: Run govulncheck
         # GO-2026-6443 (grpc v1.84.0 panic) affects all plugins; fixed only in dev version
         continue-on-error: true
-        run: go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./...
+        run: govulncheck ./...
 
   build:
     name: Build

@@ -13,9 +13,11 @@ jobs:
     name: Vale (Google style)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: jdx/mise-action@v2
+      # Reads this repo's mise.toml only, so CI resolves the exact vale and
+      # reviewdog versions pinned there.
+      - uses: jdx/mise-action@v5
         with:
           install_only: true
           install_args: vale aqua:reviewdog/reviewdog
@@ -39,9 +41,9 @@ jobs:
     name: Markdownlint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: jdx/mise-action@v2
+      - uses: jdx/mise-action@v5
         with:
           install_only: true
           install_args: node
@@ -53,9 +55,9 @@ jobs:
     name: Actionlint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: jdx/mise-action@v2
+      - uses: jdx/mise-action@v5
         with:
           install_only: true
           install_args: actionlint

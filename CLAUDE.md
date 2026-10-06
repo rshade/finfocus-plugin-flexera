@@ -5,13 +5,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Building and Testing
 
 ```bash
+# Install the pinned toolchain (Go 1.27.1 and golangci-lint 2.14.0)
+mise install
+
 # Build the plugin binary
 make build
 
 # Run tests
 make test
 
-# Run linting (requires golangci-lint)
+# Run linting with the mise-pinned golangci-lint
 make lint
 
 # Install to local plugin directory
