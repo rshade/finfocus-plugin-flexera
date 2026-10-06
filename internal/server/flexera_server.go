@@ -46,15 +46,6 @@ const (
 	forecastLookbackMonths = 3
 )
 
-func supportedResourceType(resourceType string) bool {
-	switch resourceType {
-	case "aws-ec2", "aws-s3", "aws-rds", "azure-vm", "azure-storage", "gcp-compute", "gcp-storage":
-		return true
-	default:
-		return false
-	}
-}
-
 // FlexeraServer implements finfocus.v1.CostSourceService.
 type FlexeraServer struct {
 	pbc.UnimplementedCostSourceServiceServer
@@ -146,14 +137,14 @@ func (s *FlexeraServer) Supports(_ context.Context, req *pbc.SupportsRequest) (*
 		return &pbc.SupportsResponse{Supported: false, Reason: "resource descriptor is required"}, nil
 	}
 	resource := req.GetResource()
-	resourceType := strings.ToLower(strings.TrimSpace(resource.GetResourceType()))
-	if !supportedResourceType(resourceType) {
+	bill, ok := billingForType(resource.GetResourceType())
+	if !ok {
 		return &pbc.SupportsResponse{
 			Supported: false,
 			Reason:    fmt.Sprintf("unsupported resource type %q", resource.GetResourceType()),
 		}, nil
 	}
-	if !providerMatches(resourceType, resource.GetProvider()) {
+	if !providerMatches(bill.Literal, resource.GetProvider()) {
 		return &pbc.SupportsResponse{
 			Supported: false,
 			Reason: fmt.Sprintf(
@@ -286,8 +277,7 @@ func (s *FlexeraServer) GetProjectedCost(
 	if req == nil || req.GetResource() == nil {
 		return nil, status.Error(codes.InvalidArgument, "resource descriptor is required")
 	}
-	resourceType := strings.ToLower(strings.TrimSpace(req.GetResource().GetResourceType()))
-	if !supportedResourceType(resourceType) {
+	if _, ok := billingForType(req.GetResource().GetResourceType()); !ok {
 		return &pbc.GetProjectedCostResponse{
 			Currency:      currencyUSD,
 			BillingDetail: "unsupported resource type; projection is 0",
@@ -355,8 +345,7 @@ func (s *FlexeraServer) GetPricingSpec(
 		return nil, status.Error(codes.InvalidArgument, "resource descriptor is required")
 	}
 	resource := req.GetResource()
-	resourceType := strings.ToLower(strings.TrimSpace(resource.GetResourceType()))
-	if !supportedResourceType(resourceType) {
+	if _, ok := billingForType(resource.GetResourceType()); !ok {
 		return nil, status.Errorf(codes.NotFound, "unsupported resource type %q", resource.GetResourceType())
 	}
 	provider, service, region := parseResourceType(resource.GetResourceType())
@@ -458,6 +447,9 @@ func providerMatches(resourceType, provider string) bool {
 }
 
 func parseResourceType(resourceType string) (string, string, string) {
+	if bill, ok := billingForType(resourceType); ok {
+		resourceType = bill.Literal
+	}
 	parts := strings.Split(resourceType, "-")
 	provider := "unknown"
 	if len(parts) >= 1 {
@@ -480,6 +472,9 @@ func parseResourceType(resourceType string) (string, string, string) {
 func mapResourceDescriptorToID(r *pbc.ResourceDescriptor) string {
 	if r == nil {
 		return ""
+	}
+	if bill, ok := billingForType(r.GetResourceType()); ok {
+		return fmt.Sprintf("service/%s/%s", bill.Vendor, bill.Service)
 	}
 	parts := strings.Split(r.GetResourceType(), "-")
 	if len(parts) >= 1 {
