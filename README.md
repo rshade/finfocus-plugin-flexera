@@ -164,10 +164,14 @@ make test-integration
 ResourceDescriptor fields → Flexera Optima filters:
 
 - `Provider`: Cloud provider (AWS, Azure, GCP, etc.)
-- `ResourceType`: Supported types include:
-  - `aws-ec2`, `aws-s3`, `aws-rds`
-  - `azure-vm`, `azure-storage`
-  - `gcp-compute`, `gcp-storage`
+- `ResourceType`: Literal ids and the Pulumi tokens that normalize to them:
+  - `aws-ec2`, `aws:ec2/instance:Instance`, `aws-native:ec2:Instance`
+  - `aws-s3`, `aws:s3/bucket:Bucket`, `aws:s3/bucketV2:BucketV2`, `aws-native:s3:Bucket`
+  - `aws-rds`, `aws:rds/instance:Instance`, `aws-native:rds:DbInstance`
+  - `azure-vm`, `azure-native:compute:VirtualMachine`, `azure:compute/virtualMachine:VirtualMachine`, and the Linux and Windows virtual machine tokens
+  - `azure-storage`, `azure-native:storage:StorageAccount`
+  - `gcp-compute`, `gcp:compute/instance:Instance`, `google-native:compute/v1:Instance`
+  - `gcp-storage`, `gcp:storage/bucket:Bucket`, `google-native:storage/v1:Bucket`
 - `Region`: Cloud region for filtering
 - `Tags`: Maps to Flexera tag dimensions
 
@@ -176,7 +180,7 @@ ResourceDescriptor fields → Flexera Optima filters:
 `ActualCostQuery.ResourceID` accepts flexible IDs for cost filtering:
 
 - `vendor_account/<account-id>` - Filter by cloud account
-- `service/<vendor>/<service-name>` - Filter by vendor and service (e.g., `service/aws/ec2`)
+- `service/<vendor>/<service-name>` - Filter by Flexera Cloud Vendor and Service (for example `service/Amazon Web Services/AmazonEC2`)
 - `region/<vendor>/<region>` - Filter by vendor and region (e.g., `region/azure/eastus`)
 - `resource_group/<group-name>` - Filter by resource group
 - A cloud resource id or ARN — `equal` filter on `resource_id`
