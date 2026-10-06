@@ -234,8 +234,8 @@ func TestMapResourceDescriptorToID(t *testing.T) {
 		resourceType string
 		expected     string
 	}{
-		{"aws-ec2", "service/aws/ec2"},
-		{"azure-storage", "service/azure/storage"},
+		{"aws-ec2", "service/Amazon Web Services/AmazonEC2"},
+		{"azure-storage", "service/Microsoft Azure/Microsoft.Storage"},
 		{"gcp-compute-engine", "service/gcp/compute-engine"},
 		{"cloud-account", "vendor_account/*"},
 		{"unknown-type", ""},

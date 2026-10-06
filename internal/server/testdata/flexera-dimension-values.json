@@ -1,0 +1,148 @@
+{
+  "sources": [
+    "https://docs.flexera.com/Flexera/EN/Optima/BillDimensionsMatrix.htm",
+    "https://docs.flexera.com/flexera/EN/Optima/awscostcat.htm",
+    "https://docs.flexera.com/flexera/EN/Optima/azurecostcat.htm",
+    "https://docs.flexera.com/flexera-one/cloud/using-cloud-cost-optimization/analyzing-cloud-costs-in-billing-centers/cost-dimensions/cloud-cost-optimization-generated-cost-dimension-category/google-cloud-platform-cost-categories"
+  ],
+  "rows": [
+    {
+      "id": "aws-ec2",
+      "literal": "aws-ec2",
+      "vendor": "Amazon Web Services",
+      "service": "AmazonEC2"
+    },
+    {
+      "id": "aws:ec2/instance:Instance",
+      "literal": "aws-ec2",
+      "vendor": "Amazon Web Services",
+      "service": "AmazonEC2"
+    },
+    {
+      "id": "aws-native:ec2:Instance",
+      "literal": "aws-ec2",
+      "vendor": "Amazon Web Services",
+      "service": "AmazonEC2"
+    },
+    {
+      "id": "aws-s3",
+      "literal": "aws-s3",
+      "vendor": "Amazon Web Services",
+      "service": "AmazonS3"
+    },
+    {
+      "id": "aws:s3/bucket:Bucket",
+      "literal": "aws-s3",
+      "vendor": "Amazon Web Services",
+      "service": "AmazonS3"
+    },
+    {
+      "id": "aws:s3/bucketV2:BucketV2",
+      "literal": "aws-s3",
+      "vendor": "Amazon Web Services",
+      "service": "AmazonS3"
+    },
+    {
+      "id": "aws-native:s3:Bucket",
+      "literal": "aws-s3",
+      "vendor": "Amazon Web Services",
+      "service": "AmazonS3"
+    },
+    {
+      "id": "aws-rds",
+      "literal": "aws-rds",
+      "vendor": "Amazon Web Services",
+      "service": "AmazonRDS"
+    },
+    {
+      "id": "aws:rds/instance:Instance",
+      "literal": "aws-rds",
+      "vendor": "Amazon Web Services",
+      "service": "AmazonRDS"
+    },
+    {
+      "id": "aws-native:rds:DbInstance",
+      "literal": "aws-rds",
+      "vendor": "Amazon Web Services",
+      "service": "AmazonRDS"
+    },
+    {
+      "id": "azure-vm",
+      "literal": "azure-vm",
+      "vendor": "Microsoft Azure",
+      "service": "Microsoft.Compute"
+    },
+    {
+      "id": "azure-native:compute:VirtualMachine",
+      "literal": "azure-vm",
+      "vendor": "Microsoft Azure",
+      "service": "Microsoft.Compute"
+    },
+    {
+      "id": "azure:compute/virtualMachine:VirtualMachine",
+      "literal": "azure-vm",
+      "vendor": "Microsoft Azure",
+      "service": "Microsoft.Compute"
+    },
+    {
+      "id": "azure:compute/linuxVirtualMachine:LinuxVirtualMachine",
+      "literal": "azure-vm",
+      "vendor": "Microsoft Azure",
+      "service": "Microsoft.Compute"
+    },
+    {
+      "id": "azure:compute/windowsVirtualMachine:WindowsVirtualMachine",
+      "literal": "azure-vm",
+      "vendor": "Microsoft Azure",
+      "service": "Microsoft.Compute"
+    },
+    {
+      "id": "azure-storage",
+      "literal": "azure-storage",
+      "vendor": "Microsoft Azure",
+      "service": "Microsoft.Storage"
+    },
+    {
+      "id": "azure-native:storage:StorageAccount",
+      "literal": "azure-storage",
+      "vendor": "Microsoft Azure",
+      "service": "Microsoft.Storage"
+    },
+    {
+      "id": "gcp-compute",
+      "literal": "gcp-compute",
+      "vendor": "Google",
+      "service": "Compute Engine"
+    },
+    {
+      "id": "gcp:compute/instance:Instance",
+      "literal": "gcp-compute",
+      "vendor": "Google",
+      "service": "Compute Engine"
+    },
+    {
+      "id": "google-native:compute/v1:Instance",
+      "literal": "gcp-compute",
+      "vendor": "Google",
+      "service": "Compute Engine"
+    },
+    {
+      "id": "gcp-storage",
+      "literal": "gcp-storage",
+      "vendor": "Google",
+      "service": "Cloud Storage"
+    },
+    {
+      "id": "gcp:storage/bucket:Bucket",
+      "literal": "gcp-storage",
+      "vendor": "Google",
+      "service": "Cloud Storage"
+    },
+    {
+      "id": "google-native:storage/v1:Bucket",
+      "literal": "gcp-storage",
+      "vendor": "Google",
+      "service": "Cloud Storage"
+    }
+  ]
+}
