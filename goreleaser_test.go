@@ -11,7 +11,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// goreleaserConfig mirrors the structure we need from .goreleaser.yaml
+// goreleaserConfig mirrors the structure we need from .goreleaser.yaml.
 type goreleaserConfig struct {
 	ProjectName string `yaml:"project_name"`
 	Archives    []struct {
@@ -25,7 +25,7 @@ type goreleaserConfig struct {
 }
 
 // buildAssetPatterns mirrors the installer's pattern matching logic from
-// github.com/rshade/finfocus/internal/registry/github.go buildAssetPatterns
+// github.com/rshade/finfocus/internal/registry/github.go buildAssetPatterns.
 func buildAssetPatterns(projectName, version string) map[string]bool {
 	patterns := make(map[string]bool)
 
@@ -110,10 +110,10 @@ func TestGoreleaserAssetNames(t *testing.T) {
 
 	// Test cases: (goos, goarch, version, expected_format)
 	testCases := []struct {
-		goos   string
-		goarch string
+		goos    string
+		goarch  string
 		version string
-		format string
+		format  string
 	}{
 		{"linux", "amd64", testVersion, "tar.gz"},
 		{"linux", "arm64", testVersion, "tar.gz"},

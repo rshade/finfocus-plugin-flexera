@@ -19,7 +19,10 @@ type dayWindow struct {
 	End   time.Time
 }
 
-func (s *FlexeraServer) forecastMonthly(ctx context.Context, filter *flexeraapi.FilterExpression) (float64, bool, error) {
+func (s *FlexeraServer) forecastMonthly(
+	ctx context.Context,
+	filter *flexeraapi.FilterExpression,
+) (float64, bool, error) {
 	if s == nil || s.api == nil || len(s.billingCenterIDs) == 0 {
 		return 0, false, nil
 	}

@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
+	flexera "github.com/flexera-public/unified-go-client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	flexera "github.com/flexera-public/unified-go-client"
 )
 
 // TestCostsSelectHTTPIntegration verifies the wrapper makes correct HTTP calls to the Bill Analysis API.
@@ -210,7 +210,6 @@ func TestCostsSelectRequestValidation(t *testing.T) {
 	})
 }
 
-
 // TestCostsSelectValidation verifies input validation.
 func TestCostsSelectValidation(t *testing.T) {
 	t.Parallel()
@@ -378,7 +377,7 @@ func TestCostRowTypes(t *testing.T) {
 	row := CostRow{
 		Timestamp: time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC),
 		Dimensions: map[string]string{
-			"vendor": "aws",
+			"vendor":  "aws",
 			"service": "ec2",
 		},
 		Metrics: map[string]float64{

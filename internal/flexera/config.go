@@ -149,7 +149,7 @@ func getenvDuration(k string, def time.Duration) time.Duration {
 	return def
 }
 
-// getBaseURLForRegion returns the appropriate Flexera Optima API endpoint for the region
+// getBaseURLForRegion returns the appropriate Flexera Optima API endpoint for the region.
 func getBaseURLForRegion(region string) string {
 	switch strings.ToLower(region) {
 	case "nam", "north-america":
@@ -164,7 +164,7 @@ func getBaseURLForRegion(region string) string {
 	}
 }
 
-// GetCostsURL returns the full URL for the costs endpoint
+// GetCostsURL returns the full URL for the costs endpoint.
 func (c Config) GetCostsURL() string {
 	return fmt.Sprintf("%s/orgs/%s/costs", c.BaseURL, c.OrgID)
 }

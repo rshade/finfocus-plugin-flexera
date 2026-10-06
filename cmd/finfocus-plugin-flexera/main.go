@@ -8,7 +8,6 @@ import (
 	"net"
 	"os"
 	"strconv"
-	"time"
 
 	flexeraclient "github.com/flexera-public/unified-go-client"
 	"google.golang.org/grpc"
@@ -29,11 +28,11 @@ func main() {
 
 	// Handle version flags
 	if *showVersion {
-		fmt.Println(version.String())
+		fmt.Fprintln(os.Stdout, version.String())
 		os.Exit(0)
 	}
 	if *showVersionFull {
-		fmt.Println(version.FullString())
+		fmt.Fprintln(os.Stdout, version.FullString())
 		os.Exit(0)
 	}
 
@@ -44,7 +43,7 @@ func main() {
 	}
 
 	// Create Flexera client
-	cli, err := flexera.NewClient(contextWithTimeout(context.Background()), cfg)
+	cli, err := flexera.NewClient(context.Background(), cfg)
 	if err != nil {
 		log.Fatalf("client: %v", err)
 	}
@@ -54,7 +53,7 @@ func main() {
 
 	// FinFocus plugins use gRPC. For simplicity here, use a TCP loopback.
 	// The plugin host will launch and connect to this ephemeral port.
-	lis, err := net.Listen("tcp", "127.0.0.1:50051")
+	lis, err := (&net.ListenConfig{}).Listen(context.Background(), "tcp", "127.0.0.1:50051")
 	if err != nil {
 		log.Fatalf("listen: %v", err)
 	}
@@ -68,8 +67,8 @@ func main() {
 	reflection.Register(grpcServer)
 
 	log.Printf("listening on %s", lis.Addr().String())
-	if err := grpcServer.Serve(lis); err != nil {
-		log.Fatalf("serve: %v", err)
+	if serveErr := grpcServer.Serve(lis); serveErr != nil {
+		log.Fatalf("serve: %v", serveErr)
 	}
 }
 
@@ -97,16 +96,4 @@ func attachCostAPI(flexeraServer *server.FlexeraServer, cfg flexera.Config) erro
 	}
 	flexeraServer.UseCostAPI(api, cfg.BillingCenterIDs, cfg.CostMetric)
 	return nil
-}
-
-func contextWithTimeout(ctx context.Context) context.Context {
-	timeout := 30 * time.Second
-	if d := os.Getenv("FLEXERA_TIMEOUT"); d != "" {
-		if parsed, err := time.ParseDuration(d); err == nil {
-			timeout = parsed
-		}
-	}
-	c, cancel := context.WithTimeout(ctx, timeout)
-	_ = cancel // The cancel function is not called here since the context lives for the program duration
-	return c
 }
