@@ -2,7 +2,7 @@
   "name": "flexera",
   "version": "0.1.0",
   "type": "costsource",
-  "description": "Flexera One cost plugin for FinFocus. Actual cost comes from Bill Analysis costs/select. Recommendations come from the Optima recommendations index.",
+  "description": "Flexera One cost plugin for FinFocus. Actual cost comes from Bill Analysis costs/select. Recommendations come from the Optima recommendations index. Budgets are read from the Flexera budget index and budget report.",
   "executable": "finfocus-plugin-flexera",
   "protocol": "grpc",
   "supported_resources": [
