@@ -33,6 +33,12 @@ func TestRegionAndBillingHelpers(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewClient: %v", err)
 	}
+	if dims := mapped.CostTagDimensions(); len(dims) != 1 || dims[0] != "tag_environment" {
+		t.Fatalf("tag dimensions = %#v", dims)
+	}
+	if id, idErr := mapped.GetBillingCenterForTags(nil); idErr != nil || id != "bc-default" {
+		t.Fatalf("default billing center = %q err=%v", id, idErr)
+	}
 	point := &CostPoint{}
 	mapped.EnrichCostPointWithBillingCenter(point)
 	if point.Dimensions["billing_center"] != "bc-default" {

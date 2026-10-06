@@ -83,15 +83,19 @@ func codeForHTTP(statusCode int) codes.Code {
 	}
 }
 
+func (s *FlexeraServer) costSelectDimensions() []string {
+	dims := []string{dimResourceID, dimVendor, dimService, dimRegion}
+	if s == nil || s.cli == nil {
+		return dims
+	}
+	return append(dims, s.cli.CostTagDimensions()...)
+}
+
 func (s *FlexeraServer) billingCenterID(dimensions map[string]string) string {
 	if s == nil || s.cli == nil {
 		return ""
 	}
-	tags := tagsFromDimensions(dimensions)
-	if len(tags) == 0 {
-		return ""
-	}
-	id, err := s.cli.GetBillingCenterForTags(tags)
+	id, err := s.cli.GetBillingCenterForTags(tagsFromDimensions(dimensions))
 	if err != nil || id == "" {
 		return ""
 	}

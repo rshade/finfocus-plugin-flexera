@@ -36,7 +36,7 @@ This is a gRPC plugin that implements the CostSource service from `finfocus-spec
 - `Name` returns `flexera`.
 - `GetPluginInfo` reports the plugin version, `pluginsdk.SpecVersion`, providers `aws`, `azure`, and `gcp`, and capabilities for actual cost, projected cost, and pricing spec. Metadata key `implemented_rpcs` lists the RPCs this binary implements. Estimate, recommendations, budgets, dry run, batch, and type resolution stay on the embedded unimplemented server.
 - `Supports` allows `aws-ec2`, `aws-s3`, `aws-rds`, `azure-vm`, `azure-storage`, `gcp-compute`, and `gcp-storage`. When the host sends a provider, it must match the resource type prefix. A descriptor region of `nam`, `eu`, or `apac` (including `north-america`, `europe`, and `asia-pacific`) must match the plugin's configured Flexera zone. Cloud regions such as `us-east-1` are accepted.
-- `GetActualCost` calls `CostsSelect` (`BillAnalysisCostsSelectWithResponse`) with `billing_center_ids`, an `equal` filter, and day windows of at most 31 days. Currency comes from `BillAnalysisCurrencySettingShowWithResponse` and is cached for 15 minutes. Each row is rounded to the currency minor unit.
+- `GetActualCost` calls `CostsSelect` (`BillAnalysisCostsSelectWithResponse`) with `billing_center_ids`, an `equal` filter, day windows of at most 31 days, and a `tag_<key>` dimension for each configured billing-center tag key. Currency comes from `BillAnalysisCurrencySettingShowWithResponse` and is cached for 15 minutes. Each row is rounded to the currency minor unit. A row with no tag values still uses `defaultBillingCenter` when that is set.
 - `GetProjectedCost` calls `ForecastReport` (`BillAnalysisForecastsReportWithResponse`) for the current month. The monthly figure is the sum of `forecastAmounts`. If that report returns no amounts or fails, the plugin falls back to a 90-day linear extrapolation of `costs/select`. `main` builds the client from `FLEXERA_REFRESH_TOKEN` or `FLEXERA_CLIENT_ID` plus `FLEXERA_CLIENT_SECRET`. The legacy HTTP client in `internal/flexera` is not used for these RPCs.
 
 ## Key Implementation Details
@@ -214,7 +214,7 @@ billingCenterMappings:
 
 ### Usage
 
-- `GetActualCost` is automatically enriched with a billing center id on the result lineage when tag mappings match `tag:` or `tag_` dimensions
+- `GetActualCost` requests `tag_<key>` for each configured tag key and writes the matched billing center id, or `defaultBillingCenter`, onto the result lineage
 - Use `client.GetBillingCenterForTags()` to resolve billing centers programmatically
 - Generate Flexera RBD configs with `client.GenerateFlexeraRBDConfig()`
 

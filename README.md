@@ -241,7 +241,7 @@ billingCenterMappings:
    - Direct tag mappings (highest priority)
    - Hierarchical mappings (by priority order)
    - Default billing center (fallback)
-3. **Cost Enrichment**: `GetActualCost` is automatically enriched with a billing center id on each result's lineage when a `tag:` or `tag_` dimension matches `billingCenterMappings`
+3. **Cost Enrichment**: `GetActualCost` requests a `tag_<key>` dimension for each configured tag key. A matching row, or `defaultBillingCenter` when the row has no tag values, is written onto that result's lineage
 4. **Flexera Integration**: Mappings can generate Flexera RBD rules for native integration
 
 ### Use Cases

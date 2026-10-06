@@ -3,6 +3,7 @@ package flexera
 import (
 	"context"
 	"errors"
+	"sort"
 	"strings"
 	"time"
 )
@@ -61,6 +62,43 @@ func (c *Client) EnrichCostPointWithBillingCenter(point *CostPoint) {
 		}
 		point.Dimensions["billing_center"] = bcID
 	}
+}
+
+// CostTagDimensions returns the costs/select dimension for each configured tag key.
+// Bill Analysis names those dimensions tag_<key>.
+func (c *Client) CostTagDimensions() []string {
+	if c == nil || c.cfg.BillingCenterMappings == nil {
+		return nil
+	}
+	seen := map[string]struct{}{}
+	var dims []string
+	add := func(key string) {
+		key = strings.TrimSpace(key)
+		if key == "" {
+			return
+		}
+		if colon := strings.IndexByte(key, ':'); colon >= 0 {
+			key = strings.TrimSpace(key[:colon])
+		}
+		if key == "" {
+			return
+		}
+		dim := "tag_" + key
+		if _, ok := seen[dim]; ok {
+			return
+		}
+		seen[dim] = struct{}{}
+		dims = append(dims, dim)
+	}
+	mapping := c.cfg.BillingCenterMappings
+	for tagKey := range mapping.TagMappings {
+		add(tagKey)
+	}
+	for _, hierarchy := range mapping.HierarchicalMappings {
+		add(hierarchy.TagKey)
+	}
+	sort.Strings(dims)
+	return dims
 }
 
 // GetBillingCenterForTags resolves a billing center ID from a set of tags.

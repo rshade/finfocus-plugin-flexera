@@ -236,7 +236,7 @@ func (s *FlexeraServer) selectCosts(
 		resp, err := s.api.CostsSelect(ctx, flexeraapi.CostsSelectRequest{
 			BillingCenterIDs: s.billingCenterIDs,
 			Metrics:          []string{metric},
-			Dimensions:       []string{dimResourceID, dimVendor, dimService, dimRegion},
+			Dimensions:       s.costSelectDimensions(),
 			StartAt:          window.Start.Format(time.DateOnly),
 			EndAt:            window.End.Format(time.DateOnly),
 			Limit:            selectLimit,

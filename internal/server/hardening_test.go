@@ -139,7 +139,7 @@ func TestGetActualCostEnrichesBillingCenterFromTags(t *testing.T) {
 		currency: "USD",
 		rows: []flexeraapi.CostRow{{
 			Timestamp:  time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
-			Dimensions: map[string]string{"tag:environment": "production"},
+			Dimensions: map[string]string{"tag_environment": "production"},
 			Metrics:    map[string]float64{"cost_amortized_unblended_adj": 2},
 		}},
 	}
@@ -148,6 +148,9 @@ func TestGetActualCostEnrichesBillingCenterFromTags(t *testing.T) {
 	resp, err := srv.GetActualCost(context.Background(), actualRequest())
 	if err != nil {
 		t.Fatalf("GetActualCost: %v", err)
+	}
+	if len(api.calls) != 1 || !hasDimension(api.calls[0].Dimensions, "tag_environment") {
+		t.Fatalf("costs/select dimensions = %#v", api.calls[0].Dimensions)
 	}
 	if len(resp.GetResults()) != 1 {
 		t.Fatalf("results = %d", len(resp.GetResults()))
@@ -159,4 +162,49 @@ func TestGetActualCostEnrichesBillingCenterFromTags(t *testing.T) {
 	if parent.GetType() != pbc.LineageNodeType_LINEAGE_NODE_TYPE_BILLING_ACCOUNT {
 		t.Fatalf("lineage type = %s", parent.GetType())
 	}
+}
+
+func TestGetActualCostUsesDefaultBillingCenterWithoutTags(t *testing.T) {
+	cfg := flexera.Config{
+		OrgID:  "1",
+		Region: "nam",
+		BillingCenterMappings: &flexera.BillingCenterMapping{
+			TagMappings:          map[string]string{"environment:production": "bc-prod-123"},
+			DefaultBillingCenter: "bc-unallocated",
+		},
+	}
+	cli, err := flexera.NewClient(context.Background(), cfg)
+	if err != nil {
+		t.Fatalf("NewClient: %v", err)
+	}
+	api := &fakeAPI{
+		currency: "USD",
+		rows: []flexeraapi.CostRow{{
+			Timestamp:  time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
+			Dimensions: map[string]string{"vendor": "aws"},
+			Metrics:    map[string]float64{"cost_amortized_unblended_adj": 2},
+		}},
+	}
+	srv := NewFlexeraServer(cli)
+	srv.UseCostAPI(api, []string{"bc-1"}, "")
+	resp, err := srv.GetActualCost(context.Background(), actualRequest())
+	if err != nil {
+		t.Fatalf("GetActualCost: %v", err)
+	}
+	if len(api.calls) != 1 || !hasDimension(api.calls[0].Dimensions, "tag_environment") {
+		t.Fatalf("costs/select dimensions = %#v", api.calls[0].Dimensions)
+	}
+	parent := resp.GetResults()[0].GetLineage().GetParent()
+	if parent.GetId() != "bc-unallocated" {
+		t.Fatalf("billing center = %q", parent.GetId())
+	}
+}
+
+func hasDimension(dimensions []string, want string) bool {
+	for _, dim := range dimensions {
+		if dim == want {
+			return true
+		}
+	}
+	return false
 }
