@@ -22,16 +22,16 @@ The binary supports version-related command line flags:
 
 ```bash
 # Show basic version information
-./pulumicost-kubecost -version
+./finfocus-plugin-flexera -version
 
 # Show detailed version information
-./pulumicost-kubecost -version-full
+./finfocus-plugin-flexera -version-full
 ```
 
 ### Programmatic Usage
 
 ```go
-import "github.com/rshade/pulumicost-plugin-kubecost/pkg/version"
+import "github.com/rshade/finfocus-plugin-flexera/pkg/version"
 
 // Get basic version string
 fmt.Println(version.String())
@@ -50,7 +50,7 @@ fmt.Printf("Git Commit: %s\n", info.GitCommit)
 Version information is injected at build time using ldflags. The Makefile automatically extracts git information and build date:
 
 ```bash
-# Build with default version (1.0.0)
+# Build with default version (0.1.0)
 make build
 
 # Build with custom version
@@ -71,7 +71,7 @@ make version-info
 
 The following variables can be set during build:
 
-- `VERSION`: Semantic version (default: 1.0.0)
+- `VERSION`: Semantic version (default: 0.1.0)
 - `GIT_COMMIT`: Git commit hash (auto-detected)
 - `GIT_BRANCH`: Git branch name (auto-detected)
 - `GIT_STATE`: Git repository state (auto-detected)
@@ -80,13 +80,15 @@ The following variables can be set during build:
 ## Example Output
 
 ### Basic Version String
-```
-v1.0.0 (a1b2c3d, 2024-01-15_14:30:00_UTC, linux/amd64)
+
+```text
+v0.1.0 (a1b2c3d, 2024-01-15_14:30:00_UTC, linux/amd64)
 ```
 
 ### Full Version Information
-```
-Version: 1.0.0
+
+```text
+Version: 0.1.0
 Build Date: 2024-01-15_14:30:00_UTC
 Git Commit: a1b2c3d
 Git Branch: main
@@ -107,6 +109,6 @@ go test ./pkg/version
 
 The version information is automatically logged when the application starts:
 
-```
-2024/01/15 14:30:00 pulumicost-kubecost starting, v1.0.0 (a1b2c3d, 2024-01-15_14:30:00_UTC, linux/amd64)
+```text
+2024/01/15 14:30:00 finfocus-plugin-flexera starting, v0.1.0 (a1b2c3d, 2024-01-15_14:30:00_UTC, linux/amd64)
 ```

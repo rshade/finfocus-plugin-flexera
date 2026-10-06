@@ -264,14 +264,14 @@ pulumi:
 custom_rules:
   # Custom rule definitions
   rules:
-    - name: "kubecost_integration"
-      description: "Check for proper Kubecost API integration"
-      pattern: "kubecost"
+    - name: "flexera_integration"
+      description: "Check for proper Flexera API integration"
+      pattern: "flexera"
       severity: "medium"
       
-    - name: "pulumicost_plugin_structure"
-      description: "Verify proper PulumiCost plugin structure"
-      pattern: "pulumicost"
+    - name: "finfocus_plugin_structure"
+      description: "Verify proper FinFocus plugin structure"
+      pattern: "finfocus"
       severity: "medium"
       
     - name: "grpc_implementation"

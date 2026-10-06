@@ -1,5 +1,5 @@
-BINARY=pulumicost-flexera
-VERSION ?= 1.0.0
+BINARY=finfocus-plugin-flexera
+VERSION ?= 0.1.0
 
 # Get git information
 GIT_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
@@ -12,35 +12,43 @@ all: build
 build:
 	mkdir -p bin
 	go build -ldflags "\
-		-X github.com/rshade/pulumi-plugin-flexera/pkg/version.Version=$(VERSION) \
-		-X github.com/rshade/pulumi-plugin-flexera/pkg/version.BuildDate=$(BUILD_DATE) \
-		-X github.com/rshade/pulumi-plugin-flexera/pkg/version.GitCommit=$(GIT_COMMIT) \
-		-X github.com/rshade/pulumi-plugin-flexera/pkg/version.GitBranch=$(GIT_BRANCH) \
-		-X github.com/rshade/pulumi-plugin-flexera/pkg/version.GitState=$(GIT_STATE)" \
-		-o bin/$(BINARY) ./cmd/pulumicost-flexera
+		-X github.com/rshade/finfocus-plugin-flexera/pkg/version.Version=$(VERSION) \
+		-X github.com/rshade/finfocus-plugin-flexera/pkg/version.BuildDate=$(BUILD_DATE) \
+		-X github.com/rshade/finfocus-plugin-flexera/pkg/version.GitCommit=$(GIT_COMMIT) \
+		-X github.com/rshade/finfocus-plugin-flexera/pkg/version.GitBranch=$(GIT_BRANCH) \
+		-X github.com/rshade/finfocus-plugin-flexera/pkg/version.GitState=$(GIT_STATE)" \
+		-o bin/$(BINARY) ./cmd/finfocus-plugin-flexera
 
 test:
 	go test ./...
 
-lint:
-	golangci-lint run
+test-integration:
+	go test -tags=integration ./test/integration/...
 
-depend:
-	@echo "Installing Go development tools..."
-	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@v2.3.1
-	@go install golang.org/x/tools/cmd/goimports@latest
-	@go install github.com/fatih/gomodifytags@latest
-	@go install github.com/josharian/impl@latest
-	@go install github.com/cweill/gotests/gotests@latest
-	@go install github.com/golang/mock/mockgen@latest
-	@go install github.com/axw/gocov/gocov@latest
-	@go install github.com/AlekSi/gocov-xml@latest
-	@go install github.com/tebeka/go2xunit@latest
-	@echo "Go development tools installed successfully!"
+vet:
+	go vet ./...
+
+lint:
+	golangci-lint run ./...
+
+lint-markdown:
+	npx markdownlint-cli README.md *.md --ignore node_modules
+
+validate-workflows:
+	actionlint .github/workflows/*.yml
+
+govulncheck:
+	govulncheck ./...
+
+validate: vet lint govulncheck
+
+# Tools are pinned in mise.toml (Go 1.27.1, golangci-lint 2.14.0).
+ensure:
+	mise install
 
 install:
-	mkdir -p $$HOME/.pulumicost/plugins/flexera/$(VERSION)
-	cp bin/$(BINARY) $$HOME/.pulumicost/plugins/flexera/$(VERSION)/$(BINARY)
+	mkdir -p $$HOME/.finfocus/plugins/flexera/$(VERSION)
+	cp bin/$(BINARY) $$HOME/.finfocus/plugins/flexera/$(VERSION)/$(BINARY)
 
 version:
 	@echo "Version: $(VERSION)"

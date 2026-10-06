@@ -5,25 +5,25 @@ import (
 	"runtime"
 )
 
-// Version information
+// Version information.
 var (
-	// Version is the semantic version of the application
-	Version = "1.0.0"
+	// Version is the semantic version of the application.
+	Version = "0.1.0" //nolint:gochecknoglobals // set with -X at link time
 
-	// BuildDate is the date when the binary was built
-	BuildDate = "unknown"
+	// BuildDate is the date when the binary was built.
+	BuildDate = "unknown" //nolint:gochecknoglobals // set with -X at link time
 
-	// GitCommit is the git commit hash
-	GitCommit = "unknown"
+	// GitCommit is the git commit hash.
+	GitCommit = "unknown" //nolint:gochecknoglobals // set with -X at link time
 
-	// GitBranch is the git branch name
-	GitBranch = "unknown"
+	// GitBranch is the git branch name.
+	GitBranch = "unknown" //nolint:gochecknoglobals // set with -X at link time
 
-	// GitState is the state of the git repository (clean, dirty)
-	GitState = "unknown"
+	// GitState is the state of the git repository (clean, dirty).
+	GitState = "unknown" //nolint:gochecknoglobals // set with -X at link time
 )
 
-// Info contains version information
+// Info contains version information.
 type Info struct {
 	Version   string `json:"version"`
 	BuildDate string `json:"buildDate"`
@@ -34,7 +34,7 @@ type Info struct {
 	Platform  string `json:"platform"`
 }
 
-// GetVersionInfo returns the complete version information
+// GetVersionInfo returns the complete version information.
 func GetVersionInfo() Info {
 	return Info{
 		Version:   Version,
@@ -47,7 +47,7 @@ func GetVersionInfo() Info {
 	}
 }
 
-// String returns a formatted version string
+// String returns a formatted version string.
 func String() string {
 	info := GetVersionInfo()
 	return fmt.Sprintf("v%s (%s, %s, %s)",
@@ -57,15 +57,17 @@ func String() string {
 		info.Platform)
 }
 
-// FullString returns a detailed version string
+// FullString returns a detailed version string.
 func FullString() string {
 	info := GetVersionInfo()
-	return fmt.Sprintf("Version: %s\nBuild Date: %s\nGit Commit: %s\nGit Branch: %s\nGit State: %s\nGo Version: %s\nPlatform: %s",
+	return fmt.Sprintf(
+		"Version: %s\nBuild Date: %s\nGit Commit: %s\nGit Branch: %s\nGit State: %s\nGo Version: %s\nPlatform: %s",
 		info.Version,
 		info.BuildDate,
 		info.GitCommit,
 		info.GitBranch,
 		info.GitState,
 		info.GoVersion,
-		info.Platform)
+		info.Platform,
+	)
 }

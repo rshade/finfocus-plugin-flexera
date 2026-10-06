@@ -64,8 +64,8 @@ func TestFullString(t *testing.T) {
 
 func TestVersionVariables(t *testing.T) {
 	// Test that version variables are accessible
-	if Version == "" {
-		t.Error("Version variable should not be empty")
+	if Version != "0.1.0" {
+		t.Errorf("Version = %q, want 0.1.0", Version)
 	}
 
 	// These might be "unknown" if not built with ldflags, which is fine

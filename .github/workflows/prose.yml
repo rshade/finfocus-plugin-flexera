@@ -1,0 +1,66 @@
+name: Prose
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  vale:
+    name: Vale (Google style)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # Reads this repo's mise.toml only, so CI resolves the exact vale and
+      # reviewdog versions pinned there.
+      - uses: jdx/mise-action@v5
+        with:
+          install_only: true
+          install_args: vale aqua:reviewdog/reviewdog
+
+      - name: Fetch Vale styles
+        run: vale sync
+
+      - name: Vale -> reviewdog
+        env:
+          REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          vale . --output=line 2>/dev/null | reviewdog \
+            -efm="%f:%l:%c:%m" \
+            -name="vale" \
+            -reporter=github-pr-review \
+            -filter-mode=added \
+            -level=warning \
+            -fail-level=none
+
+  markdownlint:
+    name: Markdownlint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: jdx/mise-action@v5
+        with:
+          install_only: true
+          install_args: node
+
+      - name: Run markdownlint-cli2
+        run: npx markdownlint-cli2 README.md CLAUDE.md VERSION.md
+
+  actionlint:
+    name: Actionlint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: jdx/mise-action@v5
+        with:
+          install_only: true
+          install_args: actionlint
+
+      - name: Run actionlint
+        run: actionlint .github/workflows/*.yml

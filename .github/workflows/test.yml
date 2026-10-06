@@ -1,0 +1,79 @@
+name: Test
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          check-latest: true
+          cache: true
+
+      - name: Run tests
+        run: go test ./...
+
+      - name: Run go vet
+        run: go vet ./...
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.14.0
+
+      # mise's go: backend needs the Go version pinned in mise.toml. setup-go
+      # above is a separate toolchain and is not visible to that backend.
+      - name: Install govulncheck
+        uses: jdx/mise-action@v5
+        with:
+          install_only: true
+          install_args: go go:golang.org/x/vuln/cmd/govulncheck
+
+      - name: Run govulncheck
+        # GO-2026-6443 (grpc v1.84.0 panic) affects all plugins; fixed only in dev version
+        continue-on-error: true
+        run: govulncheck ./...
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          check-latest: true
+          cache: false
+
+      - name: Install GoReleaser
+        uses: goreleaser/goreleaser-action@v7
+        with:
+          version: '~> v2'
+          install-only: true
+
+      - name: Verify goreleaser config
+        run: goreleaser check
+
+      - name: Test build
+        run: make build

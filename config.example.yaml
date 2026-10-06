@@ -1,15 +1,22 @@
-# Flexera Optima Configuration
-# You can also set these via environment variables:
-# FLEXERA_REGION, FLEXERA_ORG_ID, FLEXERA_API_TOKEN, etc.
+# Flexera One configuration.
+# Environment variables: FLEXERA_REGION, FLEXERA_ORG_ID, FLEXERA_REFRESH_TOKEN,
+# FLEXERA_CLIENT_ID, FLEXERA_CLIENT_SECRET, FLEXERA_BILLING_CENTER_IDS.
 
-# Region can be: nam, eu, apac (auto-configures baseUrl)
+# Region can be: nam, eu, apac
 region: nam
 
-# Your Flexera organization ID
+# Numeric Flexera organization ID
 orgId: "12345"
 
-# JWT token from Flexera Cloud Management API
-apiToken: ""
+# Refresh token, or clientId plus clientSecret. Do not paste an access token.
+refreshToken: ""
+# clientId: ""
+# clientSecret: ""
+
+billingCenterIds:
+  - ""
+
+costMetric: cost_amortized_unblended_adj
 
 # Optional: Override auto-configured URL
 # baseUrl: https://api.optima.flexeraeng.com/bill-analysis

@@ -2,6 +2,7 @@ package flexera
 
 import (
 	"os"
+	"strings"
 	"testing"
 	"time"
 )
@@ -13,7 +14,7 @@ func TestLoadConfigFromEnv(t *testing.T) {
 	os.Setenv("FLEXERA_API_TOKEN", "test-token-xyz")
 	os.Setenv("FLEXERA_DEFAULT_WINDOW", "7d")
 	os.Setenv("FLEXERA_TIMEOUT", "45s")
-	
+
 	defer func() {
 		os.Unsetenv("FLEXERA_REGION")
 		os.Unsetenv("FLEXERA_ORG_ID")
@@ -43,7 +44,7 @@ func TestLoadConfigFromEnv(t *testing.T) {
 	if cfg.Timeout != 45*time.Second {
 		t.Errorf("Expected timeout 45s, got %v", cfg.Timeout)
 	}
-	
+
 	// Verify auto-configured URL for EU region
 	expectedURL := "https://api.optima-eu.flexeraeng.com/bill-analysis"
 	if cfg.BaseURL != expectedURL {
@@ -81,7 +82,7 @@ func TestGetCostsURL(t *testing.T) {
 
 	expectedURL := "https://api.optima.flexeraeng.com/bill-analysis/orgs/test-org-456/costs"
 	result := cfg.GetCostsURL()
-	
+
 	if result != expectedURL {
 		t.Errorf("Expected costs URL '%s', got '%s'", expectedURL, result)
 	}
@@ -91,28 +92,28 @@ func TestLoadConfigValidation(t *testing.T) {
 	// Test missing required fields
 	os.Unsetenv("FLEXERA_ORG_ID")
 	os.Unsetenv("FLEXERA_API_TOKEN")
-	
+
 	_, err := LoadConfigFromEnvOrFile("")
 	if err == nil {
 		t.Error("Expected error for missing required fields, got nil")
 	}
-	
+
 	// Test missing only OrgID
 	os.Setenv("FLEXERA_API_TOKEN", "test-token")
 	defer os.Unsetenv("FLEXERA_API_TOKEN")
-	
+
 	_, err = LoadConfigFromEnvOrFile("")
 	if err == nil || err.Error() != "FLEXERA_ORG_ID is required" {
 		t.Errorf("Expected 'FLEXERA_ORG_ID is required' error, got: %v", err)
 	}
-	
+
 	// Test missing only API token
 	os.Setenv("FLEXERA_ORG_ID", "test-org")
 	os.Unsetenv("FLEXERA_API_TOKEN")
 	defer os.Unsetenv("FLEXERA_ORG_ID")
-	
+
 	_, err = LoadConfigFromEnvOrFile("")
-	if err == nil || err.Error() != "FLEXERA_API_TOKEN is required" {
-		t.Errorf("Expected 'FLEXERA_API_TOKEN is required' error, got: %v", err)
+	if err == nil || !strings.Contains(err.Error(), "FLEXERA_REFRESH_TOKEN") {
+		t.Errorf("Expected a credential error, got: %v", err)
 	}
 }

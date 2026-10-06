@@ -1,9 +1,9 @@
 {
   "name": "flexera",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "type": "costsource",
-  "description": "Flexera Optima plugin for Pulumicost - provides actual and projected cost for cloud resources",
-  "executable": "pulumicost-flexera",
+  "description": "Flexera One cost plugin for FinFocus. Actual cost comes from Bill Analysis costs/select.",
+  "executable": "finfocus-plugin-flexera",
   "protocol": "grpc",
   "supported_resources": [
     "aws-ec2",
@@ -12,12 +12,7 @@
     "azure-vm",
     "azure-storage",
     "gcp-compute",
-    "gcp-storage",
-    "cloud-account",
-    "cloud-service",
-    "cloud-region",
-    "billing-center",
-    "resource-group"
+    "gcp-storage"
   ],
   "configuration": {
     "region": {
@@ -35,7 +30,7 @@
     },
     "apiToken": {
       "type": "string",
-      "description": "JWT token from Flexera Cloud Management API",
+      "description": "Legacy bearer token. Cost RPCs use refreshToken or clientId and clientSecret.",
       "required": true,
       "env": "FLEXERA_API_TOKEN"
     },

@@ -4,220 +4,452 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
-	"github.com/rshade/pulumi-plugin-flexera/internal/flexera"
+	"github.com/rshade/finfocus-plugin-flexera/internal/flexera"
+	"github.com/rshade/finfocus-plugin-flexera/internal/flexeraapi"
+	"github.com/rshade/finfocus-plugin-flexera/pkg/version"
+	"github.com/rshade/finfocus-spec/sdk/go/pluginsdk"
+	pbc "github.com/rshade/finfocus-spec/sdk/go/proto/finfocus/v1"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-// TODO: Replace these stubs when pulumicost-spec protobuf definitions are available
-type UnimplementedCostSourceServer struct{}
-type Empty struct{}
-type PluginName struct{ Name string }
-type ResourceDescriptor struct{ ResourceType string }
-type SupportsResponse struct{ Supported bool }
-type ActualCostQuery struct{ ResourceId, Start, End string }
-type ActualCostResult struct{ Timestamp *timestamppb.Timestamp; Cost float64; UsageAmount float64; UsageUnit, Source string }
-type ActualCostResultList struct{ Results []*ActualCostResult }
-type PriceInfo struct{ UnitPrice, CostPerMonth float64; Currency, BillingDetail string }
-type PricingSpec struct{ Provider, ResourceType, Sku, Region, BillingMode, Currency, Description string; RatePerUnit float64; PluginMetadata map[string]string }
+const (
+	pluginName             = "flexera"
+	providerAWS            = "aws"
+	providerAzure          = "azure"
+	providerGCP            = "gcp"
+	currencyUSD            = "USD"
+	defaultFlexeraZone     = "nam"
+	projectionLookbackDays = 90
+	hoursPerDay            = 24
+	daysPerMonth           = 30
+	trendMinPoints         = 30
+	pair                   = 2
+	triple                 = 3
+	maxSelectDays          = 31
+	maxSelectMonths        = 24
+	selectLimit            = 1000
+	minorDigitsDefault     = 2
+	minorDigitsNone        = 0
+	minorDigitsThree       = 3
+	defaultCostMetric      = "cost_amortized_unblended_adj"
+	dimResourceID          = "resource_id"
+	dimVendor              = "vendor"
+	dimService             = "service"
+	dimRegion              = "region"
+	currencyCacheTTL       = 15 * time.Minute
+	forecastLookbackMonths = 3
+)
 
-type FlexeraServer struct {
-	UnimplementedCostSourceServer
-	cli *flexera.Client
+func supportedResourceType(resourceType string) bool {
+	switch resourceType {
+	case "aws-ec2", "aws-s3", "aws-rds", "azure-vm", "azure-storage", "gcp-compute", "gcp-storage":
+		return true
+	default:
+		return false
+	}
 }
 
+// FlexeraServer implements finfocus.v1.CostSourceService.
+type FlexeraServer struct {
+	pbc.UnimplementedCostSourceServiceServer
+	cli              *flexera.Client
+	api              flexeraapi.Client
+	billingCenterIDs []string
+	metric           string
+	currency         currencyCache
+}
+
+type currencyCache struct {
+	mu      sync.Mutex
+	code    string
+	expires time.Time
+}
+
+// NewFlexeraServer returns a CostSource server backed by the Flexera client.
 func NewFlexeraServer(cli *flexera.Client) *FlexeraServer {
 	return &FlexeraServer{cli: cli}
 }
 
+// UseCostAPI attaches the unified Flexera client used by the cost RPCs.
+func (s *FlexeraServer) UseCostAPI(api flexeraapi.Client, billingCenterIDs []string, metric string) {
+	if s == nil {
+		return
+	}
+	s.api = api
+	s.billingCenterIDs = append([]string{}, billingCenterIDs...)
+	if metric != "" {
+		s.metric = metric
+	}
+}
+
+// RegisterService registers the CostSource service on grpcServer.
 func (s *FlexeraServer) RegisterService(grpcServer *grpc.Server) {
-	// TODO: Uncomment when pulumicost-spec is available
-	// pbc.RegisterCostSourceServer(grpcServer, s)
+	pbc.RegisterCostSourceServiceServer(grpcServer, s)
 }
 
-func (s *FlexeraServer) Name(ctx context.Context, _ *Empty) (*PluginName, error) {
-	return &PluginName{Name: "flexera-optima"}, nil
+// Name returns the plugin name.
+func (s *FlexeraServer) Name(_ context.Context, _ *pbc.NameRequest) (*pbc.NameResponse, error) {
+	return &pbc.NameResponse{Name: pluginName}, nil
 }
 
-func (s *FlexeraServer) Supports(ctx context.Context, r *ResourceDescriptor) (*SupportsResponse, error) {
-	// Flexera Optima supports cloud resource types
-	supported := strings.HasPrefix(r.ResourceType, "aws-") ||
-		strings.HasPrefix(r.ResourceType, "azure-") ||
-		strings.HasPrefix(r.ResourceType, "gcp-") ||
-		r.ResourceType == "cloud-account" ||
-		r.ResourceType == "cloud-service" ||
-		r.ResourceType == "cloud-region" ||
-		r.ResourceType == "billing-center" ||
-		r.ResourceType == "resource-group"
-	return &SupportsResponse{Supported: supported}, nil
-}
-
-func (s *FlexeraServer) GetActualCost(ctx context.Context, q *ActualCostQuery) (*ActualCostResultList, error) {
-	// Build Flexera cost query from the request
-	query := s.cli.BuildCostQuery(q.ResourceId, q.Start, q.End)
-	
-	resp, err := s.cli.Costs(ctx, query)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query flexera costs: %w", err)
-	}
-
-	out := &ActualCostResultList{}
-	for _, point := range resp.Results {
-		// Convert Flexera cost point to ActualCostResult
-		timestamp, err := time.Parse("2006-01-02", point.Timestamp)
-		if err != nil {
-			// Try alternative formats
-			if timestamp, err = time.Parse(time.RFC3339, point.Timestamp); err != nil {
-				continue // Skip invalid timestamps
-			}
-		}
-		
-		// Get the primary cost metric
-		cost := 0.0
-		if costValue, exists := point.Metrics["cost_amortized_unblended_adj"]; exists {
-			cost = costValue
-		} else if costValue, exists := point.Metrics["cost"]; exists {
-			cost = costValue
-		}
-		
-		acr := &ActualCostResult{
-			Timestamp:   timestamppb.New(timestamp),
-			Cost:        cost,
-			UsageAmount: 0,  // Flexera doesn't typically include usage amounts in cost queries
-			UsageUnit:   "", 
-			Source:      "flexera-optima",
-		}
-		out.Results = append(out.Results, acr)
-	}
-	return out, nil
-}
-
-func (s *FlexeraServer) GetProjectedCost(ctx context.Context, r *ResourceDescriptor) (*PriceInfo, error) {
-	// For cost projection, analyze last 90 days of data for trends
-	end := time.Now().UTC()
-	start := end.Add(-90 * 24 * time.Hour) // 90-day lookback for better trend analysis
-	
-	acr, err := s.GetActualCost(ctx, &ActualCostQuery{
-		ResourceId: mapResourceDescriptorToID(r),
-		Start:      start.Format(time.RFC3339),
-		End:        end.Format(time.RFC3339),
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to get historical cost data: %w", err)
-	}
-	
-	if len(acr.Results) == 0 {
-		return &PriceInfo{Currency: "USD"}, nil
-	}
-
-	// Calculate trend-based projection
-	var totalCost float64
-	for _, p := range acr.Results {
-		totalCost += p.Cost
-	}
-	
-	// Calculate daily average and project monthly cost
-	dailyAverage := totalCost / float64(len(acr.Results))
-	monthlyProjection := dailyAverage * 30.0
-	
-	// Apply trend analysis if we have enough data points
-	if len(acr.Results) >= 30 {
-		// Simple trend calculation: compare first and last 15 days
-		firstHalfSum := 0.0
-		secondHalfSum := 0.0
-		midPoint := len(acr.Results) / 2
-		
-		for i := 0; i < midPoint; i++ {
-			firstHalfSum += acr.Results[i].Cost
-		}
-		for i := midPoint; i < len(acr.Results); i++ {
-			secondHalfSum += acr.Results[i].Cost
-		}
-		
-		firstHalfAvg := firstHalfSum / float64(midPoint)
-		secondHalfAvg := secondHalfSum / float64(len(acr.Results)-midPoint)
-		
-		// Apply trend factor to projection
-		if firstHalfAvg > 0 {
-			trendFactor := secondHalfAvg / firstHalfAvg
-			monthlyProjection *= trendFactor
-		}
-	}
-
-	return &PriceInfo{
-		UnitPrice:     dailyAverage,
-		Currency:      "USD", // Flexera typically returns USD, but could be configurable
-		CostPerMonth:  monthlyProjection,
-		BillingDetail: "flexera-trend-projection",
-	}, nil
-}
-
-func (s *FlexeraServer) GetPricingSpec(ctx context.Context, r *ResourceDescriptor) (*PricingSpec, error) {
-	// Extract vendor, service, region from resource type if possible
-	provider, service, region := parseResourceType(r.ResourceType)
-	
-	return &PricingSpec{
-		Provider:       provider,
-		ResourceType:   r.ResourceType,
-		Sku:            "", // Flexera abstracts SKU details
-		Region:         region,
-		BillingMode:    "consumption", // Flexera tracks actual consumption-based billing
-		RatePerUnit:    0, // Rate varies by actual cloud provider pricing
-		Currency:       "USD",
-		Description:    fmt.Sprintf("Flexera Optima cost tracking for %s", r.ResourceType),
-		PluginMetadata: map[string]string{
-			"source":   "flexera-optima",
-			"provider": provider,
-			"service":  service,
+// GetPluginInfo returns plugin version, spec version, providers, and implemented capabilities.
+func (s *FlexeraServer) GetPluginInfo(
+	_ context.Context,
+	_ *pbc.GetPluginInfoRequest,
+) (*pbc.GetPluginInfoResponse, error) {
+	return &pbc.GetPluginInfoResponse{
+		Name:        pluginName,
+		Version:     pluginVersion(),
+		SpecVersion: pluginsdk.SpecVersion,
+		Providers:   []string{providerAWS, providerAzure, providerGCP},
+		Capabilities: []pbc.PluginCapability{
+			pbc.PluginCapability_PLUGIN_CAPABILITY_ACTUAL_COSTS,
+			pbc.PluginCapability_PLUGIN_CAPABILITY_PROJECTED_COSTS,
+			pbc.PluginCapability_PLUGIN_CAPABILITY_PRICING_SPEC,
+		},
+		Metadata: map[string]string{
+			"implemented_rpcs": "Name,GetPluginInfo,Supports,GetActualCost,GetProjectedCost,GetPricingSpec",
+			"flexera_regions":  "nam,eu,apac",
 		},
 	}, nil
 }
 
-// parseResourceType extracts provider, service, and region from resource type
-func parseResourceType(resourceType string) (provider, service, region string) {
-	parts := strings.Split(resourceType, "-")
-	if len(parts) >= 1 {
-		switch parts[0] {
-		case "aws":
-			provider = "AWS"
-		case "azure":
-			provider = "Azure" 
-		case "gcp":
-			provider = "GCP"
-		default:
-			provider = "unknown"
-		}
+// Supports reports whether the plugin can price the requested resource.
+func (s *FlexeraServer) Supports(_ context.Context, req *pbc.SupportsRequest) (*pbc.SupportsResponse, error) {
+	if req == nil || req.GetResource() == nil {
+		return &pbc.SupportsResponse{Supported: false, Reason: "resource descriptor is required"}, nil
 	}
-	
-	if len(parts) >= 2 {
-		service = strings.Join(parts[1:], "-")
+	resource := req.GetResource()
+	resourceType := strings.ToLower(strings.TrimSpace(resource.GetResourceType()))
+	if !supportedResourceType(resourceType) {
+		return &pbc.SupportsResponse{
+			Supported: false,
+			Reason:    fmt.Sprintf("unsupported resource type %q", resource.GetResourceType()),
+		}, nil
 	}
-	
-	// Region would need to be extracted from the actual resource ID or context
-	region = "global" // Default value
-	
-	return provider, service, region
+	if !providerMatches(resourceType, resource.GetProvider()) {
+		return &pbc.SupportsResponse{
+			Supported: false,
+			Reason: fmt.Sprintf(
+				"provider %q does not match resource type %q",
+				resource.GetProvider(),
+				resource.GetResourceType(),
+			),
+		}, nil
+	}
+	if reason := s.regionMismatch(resource.GetRegion()); reason != "" {
+		return &pbc.SupportsResponse{Supported: false, Reason: reason}, nil
+	}
+	return &pbc.SupportsResponse{Supported: true}, nil
 }
 
-// mapResourceDescriptorToID converts a ResourceDescriptor to a resource ID for cost queries
-func mapResourceDescriptorToID(r *ResourceDescriptor) string {
-	// This is a basic mapping - in practice, you'd need more context
-	// about which specific resource instance to query
-	parts := strings.Split(r.ResourceType, "-")
+// GetActualCost queries historical cost through the unified Flexera client.
+func (s *FlexeraServer) GetActualCost(
+	ctx context.Context,
+	q *pbc.GetActualCostRequest,
+) (*pbc.GetActualCostResponse, error) {
+	if q == nil {
+		return nil, status.Error(codes.InvalidArgument, "request is required")
+	}
+	resourceID := q.GetResourceId()
+	if resourceID == "" {
+		resourceID = q.GetArn()
+	}
+	if strings.TrimSpace(resourceID) == "" {
+		return nil, status.Error(codes.InvalidArgument, "resource_id or arn is required")
+	}
+	if q.GetStart() == nil || q.GetEnd() == nil {
+		return nil, status.Error(codes.InvalidArgument, "start and end are required")
+	}
+	start := q.GetStart().AsTime()
+	end := q.GetEnd().AsTime()
+	if !start.Before(end) {
+		return nil, status.Error(codes.InvalidArgument, "start must be before end")
+	}
+	if end.After(start.AddDate(0, maxSelectMonths, 0)) {
+		return nil, status.Error(codes.InvalidArgument, "range exceeds 24 months")
+	}
+	windows, err := chunkDayWindows(start, end)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "cost window: %v", err)
+	}
+	filter, err := costFilter(resourceID)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "resource id: %v", err)
+	}
+	currency, err := s.currencyCode(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if s.api == nil {
+		return nil, status.Error(codes.FailedPrecondition, "flexera api client is not configured")
+	}
+	if len(s.billingCenterIDs) == 0 {
+		return nil, status.Error(codes.FailedPrecondition, "billing_center_ids is required")
+	}
+
+	rows, err := s.selectCosts(ctx, windows, filter, s.costMetric())
+	if err != nil {
+		return nil, err
+	}
+	out := &pbc.GetActualCostResponse{}
+	for _, row := range rows {
+		amount, ok := row.Metrics[s.costMetric()]
+		if !ok {
+			continue
+		}
+		out.Results = append(out.Results, &pbc.ActualCostResult{
+			Timestamp: timestamppb.New(row.Timestamp),
+			Cost:      roundCurrency(amount, currency),
+			Source:    pluginName,
+		})
+	}
+	sortCostResults(out.GetResults())
+	return out, nil
+}
+
+func (s *FlexeraServer) selectCosts(
+	ctx context.Context,
+	windows []dayWindow,
+	filter *flexeraapi.FilterExpression,
+	metric string,
+) ([]flexeraapi.CostRow, error) {
+	granularity := "day"
+	var rows []flexeraapi.CostRow
+	for _, window := range windows {
+		resp, err := s.api.CostsSelect(ctx, flexeraapi.CostsSelectRequest{
+			BillingCenterIDs: s.billingCenterIDs,
+			Metrics:          []string{metric},
+			Dimensions:       []string{dimResourceID, dimVendor, dimService, dimRegion},
+			StartAt:          window.Start.Format(time.DateOnly),
+			EndAt:            window.End.Format(time.DateOnly),
+			Limit:            selectLimit,
+			Granularity:      &granularity,
+			Filter:           filter,
+		})
+		if err != nil {
+			return nil, status.Errorf(codes.Unavailable, "flexera costs/select: %v", err)
+		}
+		if resp.RowsTruncated {
+			return nil, status.Error(codes.ResourceExhausted, "flexera costs/select truncated the result")
+		}
+		rows = append(rows, resp.Rows...)
+	}
+	return rows, nil
+}
+
+// GetProjectedCost estimates a monthly cost from recent costs/select rows.
+func (s *FlexeraServer) GetProjectedCost(
+	ctx context.Context,
+	req *pbc.GetProjectedCostRequest,
+) (*pbc.GetProjectedCostResponse, error) {
+	if req == nil || req.GetResource() == nil {
+		return nil, status.Error(codes.InvalidArgument, "resource descriptor is required")
+	}
+	resourceType := strings.ToLower(strings.TrimSpace(req.GetResource().GetResourceType()))
+	if !supportedResourceType(resourceType) {
+		return &pbc.GetProjectedCostResponse{
+			Currency:      currencyUSD,
+			BillingDetail: "unsupported resource type; projection is 0",
+		}, nil
+	}
+	resourceID := mapResourceDescriptorToID(req.GetResource())
+	filter, filterErr := costFilter(resourceID)
+	if filterErr == nil {
+		if forecasted, ok, forecastErr := s.forecastMonthly(ctx, filter); forecastErr == nil && ok {
+			currency, currencyErr := s.currencyCode(ctx)
+			if currencyErr != nil {
+				return nil, currencyErr
+			}
+			monthly := roundCurrency(forecasted, currency)
+			return &pbc.GetProjectedCostResponse{
+				UnitPrice:     monthly / daysPerMonth,
+				Currency:      currency,
+				CostPerMonth:  monthly,
+				BillingDetail: "sum of forecasts/report forecastAmounts for the current month. Estimates only.",
+			}, nil
+		}
+	}
+	end := time.Now().UTC()
+	start := end.Add(-time.Duration(projectionLookbackDays*hoursPerDay) * time.Hour)
+	actual, err := s.GetActualCost(ctx, &pbc.GetActualCostRequest{
+		ResourceId: mapResourceDescriptorToID(req.GetResource()),
+		Start:      timestamppb.New(start),
+		End:        timestamppb.New(end),
+	})
+	if err != nil {
+		return nil, err
+	}
+	currency := currencyUSD
+	if code, currencyErr := s.currencyCode(ctx); currencyErr == nil && code != "" {
+		currency = code
+	}
+	if len(actual.GetResults()) == 0 {
+		return &pbc.GetProjectedCostResponse{
+			Currency:      currency,
+			BillingDetail: "no historical cost rows; projection is 0",
+		}, nil
+	}
+	dailyAverage, monthly := projectMonthly(actual.GetResults(), currency)
+	return &pbc.GetProjectedCostResponse{
+		UnitPrice:    dailyAverage,
+		Currency:     currency,
+		CostPerMonth: monthly,
+		BillingDetail: "forecasts/report returned no amounts; linear extrapolation of daily " +
+			s.costMetric() + " over the lookback window. Estimates only.",
+	}, nil
+}
+
+// GetPricingSpec returns pricing metadata for a supported resource type.
+// Flexera exposes billed cost, not a unit rate card, so rate_per_unit stays 0.
+func (s *FlexeraServer) GetPricingSpec(
+	ctx context.Context,
+	req *pbc.GetPricingSpecRequest,
+) (*pbc.GetPricingSpecResponse, error) {
+	if req == nil || req.GetResource() == nil {
+		return nil, status.Error(codes.InvalidArgument, "resource descriptor is required")
+	}
+	resource := req.GetResource()
+	resourceType := strings.ToLower(strings.TrimSpace(resource.GetResourceType()))
+	if !supportedResourceType(resourceType) {
+		return nil, status.Errorf(codes.NotFound, "unsupported resource type %q", resource.GetResourceType())
+	}
+	provider, service, region := parseResourceType(resource.GetResourceType())
+	if resource.GetRegion() != "" {
+		region = resource.GetRegion()
+	}
+	currency := currencyUSD
+	if code, err := s.currencyCode(ctx); err == nil && code != "" {
+		currency = code
+	}
+	return &pbc.GetPricingSpecResponse{
+		Spec: &pbc.PricingSpec{
+			Provider:     provider,
+			ResourceType: resource.GetResourceType(),
+			Region:       region,
+			BillingMode:  "consumption",
+			Currency:     currency,
+			Description:  fmt.Sprintf("Flexera billed cost for %s", resource.GetResourceType()),
+			Source:       pluginName,
+			Assumptions: []string{
+				"Flexera reports billed cost, not a public rate card.",
+				"rate_per_unit is 0 because unit price is not available from costs/select.",
+				"Use GetActualCost for historical billed cost.",
+			},
+			PluginMetadata: map[string]string{
+				"source":   pluginName,
+				"provider": provider,
+				"service":  service,
+			},
+		},
+	}, nil
+}
+
+func pluginVersion() string {
+	v := version.Version
+	if v == "" {
+		return "v0.0.0"
+	}
+	if strings.HasPrefix(v, "v") {
+		return v
+	}
+	return "v" + v
+}
+
+func (s *FlexeraServer) regionMismatch(resourceRegion string) string {
+	requested := normalizeFlexeraZone(resourceRegion)
+	if requested == "" {
+		return ""
+	}
+	configured := defaultFlexeraZone
+	if s != nil && s.cli != nil {
+		if zone := normalizeFlexeraZone(s.cli.Region()); zone != "" {
+			configured = zone
+		}
+	}
+	if requested == configured {
+		return ""
+	}
+	return fmt.Sprintf(
+		"flexera region %q is not served by this plugin (configured for %q)",
+		requested,
+		configured,
+	)
+}
+
+func normalizeFlexeraZone(region string) string {
+	switch strings.ToLower(strings.TrimSpace(region)) {
+	case defaultFlexeraZone, "north-america":
+		return defaultFlexeraZone
+	case "eu", "europe":
+		return "eu"
+	case "apac", "asia-pacific":
+		return "apac"
+	default:
+		return ""
+	}
+}
+
+func providerMatches(resourceType, provider string) bool {
+	provider = strings.ToLower(strings.TrimSpace(provider))
+	if provider == "" {
+		return true
+	}
+	prefix := strings.SplitN(resourceType, "-", pair)[0]
+	switch provider {
+	case providerAWS, "amazon":
+		return prefix == providerAWS
+	case providerAzure, "azure-native", "azurerm":
+		return prefix == providerAzure
+	case providerGCP, "google", "google-native":
+		return prefix == providerGCP
+	default:
+		return false
+	}
+}
+
+func parseResourceType(resourceType string) (string, string, string) {
+	parts := strings.Split(resourceType, "-")
+	provider := "unknown"
 	if len(parts) >= 1 {
 		switch parts[0] {
-		case "aws", "azure", "gcp":
-			// Return a service-level ID for the cloud provider
+		case providerAWS:
+			provider = "AWS"
+		case providerAzure:
+			provider = "Azure"
+		case providerGCP:
+			provider = "GCP"
+		}
+	}
+	service := ""
+	if len(parts) >= pair {
+		service = strings.Join(parts[1:], "-")
+	}
+	return provider, service, "global"
+}
+
+func mapResourceDescriptorToID(r *pbc.ResourceDescriptor) string {
+	if r == nil {
+		return ""
+	}
+	parts := strings.Split(r.GetResourceType(), "-")
+	if len(parts) >= 1 {
+		switch parts[0] {
+		case providerAWS, providerAzure, providerGCP:
 			return fmt.Sprintf("service/%s/%s", parts[0], strings.Join(parts[1:], "-"))
 		case "cloud":
-			if len(parts) >= 2 && parts[1] == "account" {
-				return "vendor_account/*" // Wildcard to match all accounts
+			if len(parts) >= pair && parts[1] == "account" {
+				return "vendor_account/*"
 			}
 		}
 	}
-	
-	// Default to empty string which will query all resources
 	return ""
 }
+
+var _ pbc.CostSourceServiceServer = (*FlexeraServer)(nil)
