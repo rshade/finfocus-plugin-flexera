@@ -1,6 +1,6 @@
 {
   "name": "flexera",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "type": "costsource",
   "description": "Flexera One cost plugin for FinFocus. Actual cost comes from Bill Analysis costs/select.",
   "executable": "finfocus-plugin-flexera",

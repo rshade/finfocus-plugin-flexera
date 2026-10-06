@@ -1,5 +1,5 @@
 BINARY=finfocus-plugin-flexera
-VERSION ?= 1.0.0
+VERSION ?= 0.1.0
 
 # Get git information
 GIT_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")

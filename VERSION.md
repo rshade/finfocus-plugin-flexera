@@ -50,7 +50,7 @@ fmt.Printf("Git Commit: %s\n", info.GitCommit)
 Version information is injected at build time using ldflags. The Makefile automatically extracts git information and build date:
 
 ```bash
-# Build with default version (1.0.0)
+# Build with default version (0.1.0)
 make build
 
 # Build with custom version
@@ -71,7 +71,7 @@ make version-info
 
 The following variables can be set during build:
 
-- `VERSION`: Semantic version (default: 1.0.0)
+- `VERSION`: Semantic version (default: 0.1.0)
 - `GIT_COMMIT`: Git commit hash (auto-detected)
 - `GIT_BRANCH`: Git branch name (auto-detected)
 - `GIT_STATE`: Git repository state (auto-detected)
@@ -82,13 +82,13 @@ The following variables can be set during build:
 ### Basic Version String
 
 ```text
-v1.0.0 (a1b2c3d, 2024-01-15_14:30:00_UTC, linux/amd64)
+v0.1.0 (a1b2c3d, 2024-01-15_14:30:00_UTC, linux/amd64)
 ```
 
 ### Full Version Information
 
 ```text
-Version: 1.0.0
+Version: 0.1.0
 Build Date: 2024-01-15_14:30:00_UTC
 Git Commit: a1b2c3d
 Git Branch: main
@@ -110,5 +110,5 @@ go test ./pkg/version
 The version information is automatically logged when the application starts:
 
 ```text
-2024/01/15 14:30:00 finfocus-plugin-flexera starting, v1.0.0 (a1b2c3d, 2024-01-15_14:30:00_UTC, linux/amd64)
+2024/01/15 14:30:00 finfocus-plugin-flexera starting, v0.1.0 (a1b2c3d, 2024-01-15_14:30:00_UTC, linux/amd64)
 ```

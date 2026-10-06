@@ -23,7 +23,7 @@ make build
 This builds `bin/finfocus-plugin-flexera`. Place it where FinFocus can find it:
 
 ```text
-~/.finfocus/plugins/flexera/1.0.0/finfocus-plugin-flexera
+~/.finfocus/plugins/flexera/0.1.0/finfocus-plugin-flexera
 ```
 
 ## Folder structure
@@ -273,7 +273,7 @@ The `plugin.manifest.json` defines the plugin capabilities:
 ```json
 {
   "name": "flexera",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "type": "costsource",
   "description": "Flexera One cost plugin for FinFocus. Actual cost comes from Bill Analysis costs/select.",
   "executable": "finfocus-plugin-flexera",
@@ -321,7 +321,7 @@ For more details on Flexera Optima API capabilities, see the included `swagger.j
 ```json
 {
   "name": "flexera",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "kind": "cost",
   "providers": ["aws", "azure", "gcp"],
   "resourceTypes": ["cloud-resource"],

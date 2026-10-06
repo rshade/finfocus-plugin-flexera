@@ -8,7 +8,7 @@ import (
 // Version information.
 var (
 	// Version is the semantic version of the application.
-	Version = "1.0.0" //nolint:gochecknoglobals // set with -X at link time
+	Version = "0.1.0" //nolint:gochecknoglobals // set with -X at link time
 
 	// BuildDate is the date when the binary was built.
 	BuildDate = "unknown" //nolint:gochecknoglobals // set with -X at link time
