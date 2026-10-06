@@ -1,4 +1,4 @@
-BINARY=pulumicost-flexera
+BINARY=finfocus-plugin-flexera
 VERSION ?= 1.0.0
 
 # Get git information
@@ -12,18 +12,35 @@ all: build
 build:
 	mkdir -p bin
 	go build -ldflags "\
-		-X github.com/rshade/pulumi-plugin-flexera/pkg/version.Version=$(VERSION) \
-		-X github.com/rshade/pulumi-plugin-flexera/pkg/version.BuildDate=$(BUILD_DATE) \
-		-X github.com/rshade/pulumi-plugin-flexera/pkg/version.GitCommit=$(GIT_COMMIT) \
-		-X github.com/rshade/pulumi-plugin-flexera/pkg/version.GitBranch=$(GIT_BRANCH) \
-		-X github.com/rshade/pulumi-plugin-flexera/pkg/version.GitState=$(GIT_STATE)" \
-		-o bin/$(BINARY) ./cmd/pulumicost-flexera
+		-X github.com/rshade/finfocus-plugin-flexera/pkg/version.Version=$(VERSION) \
+		-X github.com/rshade/finfocus-plugin-flexera/pkg/version.BuildDate=$(BUILD_DATE) \
+		-X github.com/rshade/finfocus-plugin-flexera/pkg/version.GitCommit=$(GIT_COMMIT) \
+		-X github.com/rshade/finfocus-plugin-flexera/pkg/version.GitBranch=$(GIT_BRANCH) \
+		-X github.com/rshade/finfocus-plugin-flexera/pkg/version.GitState=$(GIT_STATE)" \
+		-o bin/$(BINARY) ./cmd/finfocus-plugin-flexera
 
 test:
 	go test ./...
 
+test-integration:
+	go test -tags=integration ./test/integration/...
+
+vet:
+	go vet ./...
+
 lint:
 	golangci-lint run
+
+lint-markdown:
+	npx markdownlint-cli README.md *.md --ignore node_modules
+
+validate-workflows:
+	actionlint .github/workflows/*.yml
+
+govulncheck:
+	go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./...
+
+validate: vet lint govulncheck
 
 depend:
 	@echo "Installing Go development tools..."
@@ -39,8 +56,8 @@ depend:
 	@echo "Go development tools installed successfully!"
 
 install:
-	mkdir -p $$HOME/.pulumicost/plugins/flexera/$(VERSION)
-	cp bin/$(BINARY) $$HOME/.pulumicost/plugins/flexera/$(VERSION)/$(BINARY)
+	mkdir -p $$HOME/.finfocus/plugins/flexera/$(VERSION)
+	cp bin/$(BINARY) $$HOME/.finfocus/plugins/flexera/$(VERSION)/$(BINARY)
 
 version:
 	@echo "Version: $(VERSION)"

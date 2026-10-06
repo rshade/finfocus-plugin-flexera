@@ -22,16 +22,16 @@ The binary supports version-related command line flags:
 
 ```bash
 # Show basic version information
-./pulumicost-kubecost -version
+./finfocus-plugin-flexera -version
 
 # Show detailed version information
-./pulumicost-kubecost -version-full
+./finfocus-plugin-flexera -version-full
 ```
 
 ### Programmatic Usage
 
 ```go
-import "github.com/rshade/pulumicost-plugin-kubecost/pkg/version"
+import "github.com/rshade/finfocus-plugin-flexera/pkg/version"
 
 // Get basic version string
 fmt.Println(version.String())
@@ -108,5 +108,5 @@ go test ./pkg/version
 The version information is automatically logged when the application starts:
 
 ```
-2024/01/15 14:30:00 pulumicost-kubecost starting, v1.0.0 (a1b2c3d, 2024-01-15_14:30:00_UTC, linux/amd64)
+2024/01/15 14:30:00 finfocus-plugin-flexera starting, v1.0.0 (a1b2c3d, 2024-01-15_14:30:00_UTC, linux/amd64)
 ```

@@ -1,0 +1,12 @@
+[tools]
+go = "1.27.1"
+golangci-lint = "2.14.0"
+actionlint = "1.7.12"
+"go:golang.org/x/vuln/cmd/govulncheck" = "1.8.0"
+node = "24"
+goreleaser = "2.18.2"
+vale = "3.20.0"
+"aqua:reviewdog/reviewdog" = "0.21.0"
+"npm:@commitlint/cli" = "20.5.2"
+"npm:@commitlint/config-conventional" = "20.5.3"
+"npm:markdownlint-cli2" = "0.23.3"

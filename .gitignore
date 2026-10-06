@@ -31,3 +31,11 @@ go.work.sum
 # .idea/
 # .vscode/
 Github_Development_Prompt.md
+
+# Generated pull request text
+PR_MESSAGE.md
+
+# Vale style packages (synced from registry, regenerated on sync)
+.vale/styles/*
+# Keep vocabulary files tracked
+!.vale/styles/config/vocabularies/
