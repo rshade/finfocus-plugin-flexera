@@ -135,7 +135,9 @@ The binary registers `finfocus.v1.CostSourceService`.
 | `GetActualCost` | `costs/select` via the unified Flexera client |
 | `GetProjectedCost` | `forecasts/report` for the current month. Extrapolates `costs/select` when the report is empty |
 | `GetPricingSpec` | Billed-cost metadata. `rate_per_unit` is 0 |
-| Health, estimate, recommendations, budgets, batch | Not implemented |
+| `GetRecommendations` | Optima recommendations index. Savings is the impact. Dismissed and snoozed rows are omitted unless `include_dismissed` is true |
+| `DismissRecommendation` | Optima status update plus in-process dismissal |
+| Health, estimate, budgets, batch | Not implemented |
 
 ## v0.1.0 limitations
 

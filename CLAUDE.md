@@ -34,7 +34,9 @@ This is a gRPC plugin that implements the CostSource service from `finfocus-spec
 `FlexeraServer` implements `finfocus.v1.CostSourceService` from `finfocus-spec` v0.7.5. `main` calls `RegisterService` and enables gRPC reflection.
 
 - `Name` returns `flexera`.
-- `GetPluginInfo` reports the plugin version, `pluginsdk.SpecVersion`, providers `aws`, `azure`, and `gcp`, and capabilities for actual cost, projected cost, and pricing spec. Metadata key `implemented_rpcs` lists the RPCs this binary implements. Estimate, recommendations, budgets, dry run, batch, and type resolution stay on the embedded unimplemented server.
+- `GetPluginInfo` reports the plugin version, `pluginsdk.SpecVersion`, providers `aws`, `azure`, and `gcp`, and capabilities for actual cost, projected cost, pricing spec, recommendations, and dismiss recommendations. Metadata key `implemented_rpcs` lists the RPCs this binary implements. Estimate, budgets, dry run, batch, and type resolution stay on the embedded unimplemented server.
+- `GetRecommendations` calls Optima `OptimaRecommendationsRecommendationsIndex`. Each row keeps its id, copies `savings` onto the finfocus impact, and keeps `resourceID` when the source has one. `excluded_recommendation_ids` are omitted. Status `snoozed` or `rejected`, and ids dismissed in this process, are omitted unless `include_dismissed` is true. The default page size is 50. `page_token` is an offset over the visible rows, and `next_page_token` is set when rows remain. More than 100 `target_resources` returns InvalidArgument.
+- `DismissRecommendation` calls `OptimaRecommendationsRecommendationsUpdateStatus` (`rejected`, or `snoozed` when `expires_at` is set) and records the id in process. A later `GetRecommendations` in the same process honors that dismissal. A 2xx is success; the generated response has no success body. A missing Flexera client returns FailedPrecondition, the same as the cost RPCs.
 - `Supports` allows `aws-ec2`, `aws-s3`, `aws-rds`, `azure-vm`, `azure-storage`, `gcp-compute`, and `gcp-storage`. When the host sends a provider, it must match the resource type prefix. A descriptor region of `nam`, `eu`, or `apac` (including `north-america`, `europe`, and `asia-pacific`) must match the plugin's configured Flexera zone. Cloud regions such as `us-east-1` are accepted.
 - `GetActualCost` calls `CostsSelect` (`BillAnalysisCostsSelectWithResponse`) with `billing_center_ids`, an `equal` filter, day windows of at most 31 days, and a `tag_<key>` dimension for each configured billing-center tag key. Currency comes from `BillAnalysisCurrencySettingShowWithResponse` and is cached for 15 minutes. Each row is rounded to the currency minor unit. A row with no tag values still uses `defaultBillingCenter` when that is set.
 - `GetProjectedCost` calls `ForecastReport` (`BillAnalysisForecastsReportWithResponse`) for the current month. The monthly figure is the sum of `forecastAmounts`. If that report returns no amounts or fails, the plugin falls back to a 90-day linear extrapolation of `costs/select`. `main` builds the client from `FLEXERA_REFRESH_TOKEN` or `FLEXERA_CLIENT_ID` plus `FLEXERA_CLIENT_SECRET`. The legacy HTTP client in `internal/flexera` is not used for these RPCs.
@@ -84,7 +86,7 @@ Uses `cost_amortized_unblended_adj` as the primary cost metric for accurate cost
 ### Error Handling
 
 - HTTP client includes timeout support via context
-- `GetActualCost`, `GetProjectedCost`, and `GetPricingSpec` each apply their own deadline (`FLEXERA_TIMEOUT`, default 30s)
+- `GetActualCost`, `GetProjectedCost`, `GetPricingSpec`, `GetRecommendations`, and `DismissRecommendation` each apply their own deadline (`FLEXERA_TIMEOUT`, default 30s)
 - `internal/flexeraapi` retries HTTP 429 and 5xx with backoff and jitter and honors `Retry-After`. Other 4xx responses are not retried
 - The same dependency failure maps to the same gRPC status on all three cost RPCs
 - Refresh tokens, client secrets, bearer tokens, and JWTs are redacted from error strings
@@ -103,6 +105,7 @@ Uses `cost_amortized_unblended_adj` as the primary cost metric for accurate cost
 ### Troubleshooting
 
 - Cost RPCs return FailedPrecondition when the unified client or `billingCenterIds` is missing.
+- `GetRecommendations` and `DismissRecommendation` return FailedPrecondition when the unified client is missing.
 - `FLEXERA_ORG_ID` must be numeric for `flexeraapi.New`.
 - A descriptor region of `eu` against a plugin configured for `nam` makes `Supports` return false. Cloud regions such as `us-east-1` do not.
 - HTTP 202 with an empty body and a truncated `costs/select` result are errors, not empty success.
