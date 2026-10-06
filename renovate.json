@@ -3,10 +3,45 @@
   "extends": [
     "config:recommended"
   ],
+  "postUpdateOptions": [
+    "gomodTidy"
+  ],
+  "schedule": [
+    "before 4am on monday"
+  ],
+  "timezone": "UTC",
   "packageRules": [
     {
       "matchDepNames": ["go"],
       "allowedVersions": "~1.27"
+    },
+    {
+      "description": "testdata go.mod files are fixtures whose pinned versions are what the tests assert, so Renovate must not bump them.",
+      "matchFileNames": [
+        "**/testdata/**"
+      ],
+      "enabled": false
+    },
+    {
+      "matchManagers": [
+        "gomod"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "groupName": "go dependencies",
+      "groupSlug": "go-deps"
+    },
+    {
+      "matchManagers": [
+        "gomod"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "groupName": "go major dependencies",
+      "groupSlug": "go-major-deps"
     }
   ]
 }
