@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.2](https://github.com/rshade/finfocus-plugin-flexera/compare/v0.1.1...v0.1.2) (2026-10-06)
+
+
+### Features
+
+* **server:** add read-only budgets ([712fa16](https://github.com/rshade/finfocus-plugin-flexera/commit/712fa162f117fec5168d0bf2c83ea4082a004d92)), closes [#5](https://github.com/rshade/finfocus-plugin-flexera/issues/5)
+* **server:** add recommendation rpcs ([#20](https://github.com/rshade/finfocus-plugin-flexera/issues/20)) ([fbeb29c](https://github.com/rshade/finfocus-plugin-flexera/commit/fbeb29cb3bf4b67bc9ff39ad5e2a6a826b69453f)), closes [#4](https://github.com/rshade/finfocus-plugin-flexera/issues/4)
+
+
+### Bug Fixes
+
+* **server:** accept pulumi type tokens ([#26](https://github.com/rshade/finfocus-plugin-flexera/issues/26)) ([9afa6d3](https://github.com/rshade/finfocus-plugin-flexera/commit/9afa6d3d254f7a3f4732049ba47d09689e5739be)), closes [#19](https://github.com/rshade/finfocus-plugin-flexera/issues/19)
+
 ## [0.1.1](https://github.com/rshade/finfocus-plugin-flexera/compare/v0.1.0...v0.1.1) (2026-10-06)
 
 
