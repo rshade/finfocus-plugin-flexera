@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.3](https://github.com/rshade/finfocus-plugin-flexera/compare/v0.1.2...v0.1.3) (2026-10-22)
+
+
+### Documentation
+
+* link Flexera One and FinFocus from the README ([8855ced](https://github.com/rshade/finfocus-plugin-flexera/commit/8855ced4e38eea30526da27c2753817ce200d080))
+
 ## [0.1.2](https://github.com/rshade/finfocus-plugin-flexera/compare/v0.1.1...v0.1.2) (2026-10-06)
 
 
