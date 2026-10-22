@@ -2,6 +2,8 @@
 
 A FinFocus **CostSource** plugin that reads cloud cost from Flexera One Cloud Cost Optimization (Bill Analysis API) over gRPC (`finfocus.v1.CostSourceService` from `finfocus-spec` v0.7.5).
 
+This plugin integrates [Flexera One](https://www.flexera.com/products/flexera-one) and is a plugin for [FinFocus](https://github.com/rshade/finfocus), the Pulumi cost CLI. See the [FinFocus docs page for this plugin](https://rshade.github.io/finfocus/plugins/flexera/).
+
 ## Capabilities
 
 - **Actual cost** from `costs/select`, filtered by resource id, in day windows of at most 31 days
