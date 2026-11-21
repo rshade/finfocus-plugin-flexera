@@ -98,7 +98,7 @@ func (s *FlexeraServer) budgetFromLink(
 	budget := &pbc.Budget{
 		Id:     link.Id,
 		Name:   link.Name,
-		Source: pluginName,
+		Source: PluginName,
 		Period: pbc.BudgetPeriod_BUDGET_PERIOD_MONTHLY,
 		Amount: &pbc.BudgetAmount{Limit: limit, Currency: currency},
 	}

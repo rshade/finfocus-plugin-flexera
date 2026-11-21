@@ -191,7 +191,7 @@ func mapRecommendation(
 		Category:    pbc.RecommendationCategory_RECOMMENDATION_CATEGORY_COST,
 		ActionType:  actionForRecommendation(src.Type),
 		Description: src.Recommendation,
-		Source:      pluginName,
+		Source:      PluginName,
 		Impact: &pbc.RecommendationImpact{
 			EstimatedSavings: src.Savings,
 			Currency:         currency,
