@@ -11,6 +11,7 @@ import (
 	"github.com/rshade/finfocus-plugin-flexera/pkg/version"
 	"github.com/rshade/finfocus-spec/sdk/go/pluginsdk"
 	pbc "github.com/rshade/finfocus-spec/sdk/go/proto/finfocus/v1"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 )
 
@@ -49,6 +50,19 @@ func TestFlexeraServerName(t *testing.T) {
 	if result.GetName() != "flexera" {
 		t.Errorf("Expected name 'flexera', got '%s'", result.GetName())
 	}
+}
+
+func TestPluginNameIsTheInstallName(t *testing.T) {
+	require.Equal(t, "flexera", PluginName, "PluginName must equal the install name")
+
+	srv := newTestServer(t, "nam")
+	name, err := srv.Name(context.Background(), &pbc.NameRequest{})
+	require.NoError(t, err)
+	require.Equal(t, PluginName, name.GetName())
+
+	info, err := srv.GetPluginInfo(context.Background(), &pbc.GetPluginInfoRequest{})
+	require.NoError(t, err)
+	require.Equal(t, PluginName, info.GetName())
 }
 
 func TestGetPluginInfo(t *testing.T) {

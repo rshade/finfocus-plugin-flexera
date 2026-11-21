@@ -18,8 +18,11 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+// PluginName is the plugin's install name. Every place the plugin states its
+// name uses it.
+const PluginName = "flexera"
+
 const (
-	pluginName             = "flexera"
 	providerAWS            = "aws"
 	providerAzure          = "azure"
 	providerGCP            = "gcp"
@@ -89,7 +92,7 @@ func (s *FlexeraServer) RegisterService(grpcServer *grpc.Server) {
 
 // Name returns the plugin name.
 func (s *FlexeraServer) Name(_ context.Context, _ *pbc.NameRequest) (*pbc.NameResponse, error) {
-	return &pbc.NameResponse{Name: pluginName}, nil
+	return &pbc.NameResponse{Name: PluginName}, nil
 }
 
 // GetPluginInfo returns plugin version, spec version, providers, and implemented capabilities.
@@ -98,7 +101,7 @@ func (s *FlexeraServer) GetPluginInfo(
 	_ *pbc.GetPluginInfoRequest,
 ) (*pbc.GetPluginInfoResponse, error) {
 	return &pbc.GetPluginInfoResponse{
-		Name:        pluginName,
+		Name:        PluginName,
 		Version:     pluginVersion(),
 		SpecVersion: pluginsdk.SpecVersion,
 		Providers:   []string{providerAWS, providerAzure, providerGCP},
@@ -223,7 +226,7 @@ func (s *FlexeraServer) GetActualCost(
 		result := &pbc.ActualCostResult{
 			Timestamp: timestamppb.New(row.Timestamp),
 			Cost:      roundCurrency(amount, currency),
-			Source:    pluginName,
+			Source:    PluginName,
 		}
 		if bcID := s.billingCenterID(row.Dimensions); bcID != "" {
 			result.Lineage = billingLineage(resourceID, bcID)
@@ -368,14 +371,14 @@ func (s *FlexeraServer) GetPricingSpec(
 			BillingMode:  "consumption",
 			Currency:     currency,
 			Description:  fmt.Sprintf("Flexera billed cost for %s", resource.GetResourceType()),
-			Source:       pluginName,
+			Source:       PluginName,
 			Assumptions: []string{
 				"Flexera reports billed cost, not a public rate card.",
 				"rate_per_unit is 0 because unit price is not available from costs/select.",
 				"Use GetActualCost for historical billed cost.",
 			},
 			PluginMetadata: map[string]string{
-				"source":   pluginName,
+				"source":   PluginName,
 				"provider": provider,
 				"service":  service,
 			},
